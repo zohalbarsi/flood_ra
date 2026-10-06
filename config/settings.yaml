@@ -1,0 +1,39 @@
+# Project choices. Tracked in git so every result can be traced to the
+# settings that produced it. Machine-specific paths live in config/paths.yaml.
+
+# Yearly infoUSA Consumer files, relative to infousa_raw. "**/" also picks up
+# the second versions in alt/. The macOS "._" copies, the uncompressed 2007
+# duplicate, the .zip and .Rhistory do not match.
+infousa_glob: "**/US_Consumer_5_File_*.csv.gz"
+infousa_delim: ","
+# latin-1 decodes any byte, so no household is dropped over an odd character
+# (utf-8 would reject such rows; names are dropped anyway).
+infousa_encoding: latin-1
+
+# Years with two versions: which one the merge uses ("main" = top folder,
+# otherwise the subfolder name). Both versions are converted, so their row
+# counts can be compared in output/logs/infousa_conversion.txt.
+#   2023: main file has 86 of 97 columns (no title, age, gender); alt/ has all 97
+#   2024: main and alt/ both have all 97 columns; difference unknown
+prefer_version:
+  2023: main
+  2024: main
+
+# Keep households whose address state is one of these postal codes.
+# Empty = the states that appear in the flood exposure tract file.
+study_states: []
+
+# Dropped during conversion: not needed for the merge (shell-style patterns).
+drop_columns: ["First_Name_*", "Middle_Name_*", "Last_Name_*", "Suffix_Code_*", "title_code"]
+
+# Hurricane Florence flood exposure files, relative to flood_exposure.
+flood_files:
+  tract: florence_census_tract_flood_exposure.csv
+  bg: florence_block_group_flood_exposure.csv
+  block: florence_census_block_flood_exposure.csv
+
+# Which infoUSA columns build the tract / block-group IDs for the merge:
+#   census:  GE_CENSUS_STATE_2010, GE_CENSUS_COUNTY, GE_CENSUS_TRACT, GE_CENSUS_BG
+#   als2010: GE_CENSUS_STATE_2010, GE_ALS_COUNTY_CODE_2010, GE_ALS_CENSUS_TRACT_2010, GE_ALS_CENSUS_BG_2010
+# output/logs/merge_report.md shows the match rate under both.
+geo_family: census

@@ -1,4 +1,4 @@
-duckdb>=1.0
-pandas>=2.0
+duckdb>=1.1
+pandas>=2.1
 pyarrow>=14
 pyyaml>=6

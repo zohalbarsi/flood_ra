@@ -15,7 +15,7 @@ from pathlib import Path
 import duckdb
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
-from flood_ra import paths  # noqa: E402
+from flood_ra import paths, settings  # noqa: E402
 
 TEXT = {".csv", ".txt", ".tsv", ".dat", ".gz"}
 
@@ -64,7 +64,7 @@ def main():
     paths.require(paths.INFOUSA_RAW, paths.FLOOD_EXPOSURE)
     con = duckdb.connect()
     lines = ["# Data inventory (schema only, no values)", ""]
-    lines += section(con, "infoUSA", paths.INFOUSA_RAW, paths.INFOUSA_GLOB)
+    lines += section(con, "infoUSA", paths.INFOUSA_RAW, settings.INFOUSA_GLOB)
     lines += section(con, "flood_exposure", paths.FLOOD_EXPOSURE)
     out = paths.LOG_DIR / "data_inventory.md"
     out.write_text("\n".join(lines))

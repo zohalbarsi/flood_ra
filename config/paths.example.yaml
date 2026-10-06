@@ -4,17 +4,16 @@
 # so your edits there never conflict with `git pull`. "~" means your home folder.
 
 # Read-only raw inputs (the pipeline never writes here).
-# The infoUSA path was given as /Desktop/project/InfoUSA/rawdata; it is assumed
-# to sit under your home folder like the flood folder. Check with `ls`.
 infousa_raw: "/home/z/zebarsi/Desktop/project/InfoUSA/rawdata"
 flood_exposure: "/home/z/zebarsi/Desktop/RA/flood_exposure"
 
-# Where the pipeline writes its Parquet and merged files. These get large:
-# check your quota (`quota -s` or `df -h ~`) and point this at scratch or
-# project space if home is small.
+# Where the pipeline writes its Parquet and merged files (roughly 20-40 GB).
+# Check your quota (`quota -s` or `df -h ~`) and point this at project or
+# scratch space if home is small.
 derived: "/home/z/zebarsi/Desktop/RA/flood_ra_derived"
 
-# Which files inside infousa_raw step 01 converts (glob, "**/" = any subfolder),
-# and their delimiter ("," or "|" or "\t"). Set both from data_inventory.md.
-infousa_glob: "**/*.csv"
-infousa_delim: ","
+# Optional: how hard to work the shared server. Files converted at once,
+# and DuckDB threads and memory per file.
+# parallel_files: 4
+# duckdb_threads: 2
+# duckdb_memory: "4GB"

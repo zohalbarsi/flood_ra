@@ -1,9 +1,9 @@
-"""Machine-specific data locations.
+"""Machine-specific data locations and resources.
 
 Every script gets data paths from here, never from hard-coded strings, so the
-same code runs on the remote desktop and anywhere else. Paths come from
-config/paths.yaml (gitignored); an environment variable FLOOD_RA_<KEY> overrides
-any entry, e.g. FLOOD_RA_INFOUSA_RAW.
+same code runs on the remote desktop and anywhere else. Values come from
+config/paths.yaml (gitignored); an environment variable FLOOD_RA_<KEY>
+overrides any entry, e.g. FLOOD_RA_INFOUSA_RAW.
 """
 from __future__ import annotations
 
@@ -35,16 +35,26 @@ CFG = _load()
 INFOUSA_RAW = Path(CFG["infousa_raw"]).expanduser()
 FLOOD_EXPOSURE = Path(CFG["flood_exposure"]).expanduser()
 DERIVED = Path(CFG["derived"]).expanduser()
-INFOUSA_GLOB = CFG.get("infousa_glob", "**/*.csv")
-INFOUSA_DELIM = CFG.get("infousa_delim", ",")
+
+# Files converted at once, and DuckDB threads / memory per file
+PARALLEL = int(CFG.get("parallel_files", 4))
+THREADS = int(CFG.get("duckdb_threads", 2))
+MEMORY = str(CFG.get("duckdb_memory", "4GB"))
 
 # Standard layout of derived outputs
-INFOUSA_PARQUET = DERIVED / "infousa_parquet"   # one file per raw file/year
+INFOUSA_PARQUET = DERIVED / "infousa_parquet"   # one file per year (and version)
 FLOOD_CLEAN = DERIVED / "flood_clean"
 MERGED = DERIVED / "merged"
+DUCKDB_TMP = DERIVED / "duckdb_tmp"
 
-for d in (DERIVED, INFOUSA_PARQUET, FLOOD_CLEAN, MERGED, LOG_DIR):
+for d in (DERIVED, INFOUSA_PARQUET, FLOOD_CLEAN, MERGED, DUCKDB_TMP, LOG_DIR):
     d.mkdir(parents=True, exist_ok=True)
+
+
+def infousa_parquet(year: int, version: str = "main") -> Path:
+    """Converted file for one year; versions other than main get a suffix."""
+    suffix = "" if version == "main" else f"_{version}"
+    return INFOUSA_PARQUET / f"infousa_{year}{suffix}.parquet"
 
 
 def require(*dirs: Path) -> None:
