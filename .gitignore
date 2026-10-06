@@ -1,0 +1,27 @@
+# ---- Data never goes in git: it lives on the server, paths set in config/paths.yaml ----
+config/paths.yaml
+data/
+output/data/
+*.csv
+*.txt.gz
+*.csv.gz
+*.zip
+*.dta
+*.parquet
+*.feather
+*.sas7bdat
+*.xlsx
+*.shp
+*.gpkg
+*.tif
+!requirements.txt
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+.ipynb_checkpoints/
+
+# OS
+.DS_Store
+Thumbs.db

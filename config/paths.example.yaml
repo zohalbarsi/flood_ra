@@ -1,0 +1,15 @@
+# Copy this file to config/paths.yaml on each machine and edit the paths.
+# config/paths.yaml is gitignored, so each machine keeps its own copy.
+# Use forward slashes even on Windows (e.g. "D:/data/infoUSA").
+
+# Read-only raw inputs (never modified by the pipeline)
+infousa_raw: "D:/data/infoUSA/raw"
+flood_exposure: "D:/projects/flood_exposure"
+
+# Where the pipeline writes intermediate/clean files (big, stays on server)
+derived: "D:/projects/flood_ra_derived"
+
+# File pattern for raw infoUSA files inside infousa_raw (glob, recursive ok)
+infousa_glob: "**/*.csv"
+# Delimiter of the raw infoUSA files ("," or "|" or "\t")
+infousa_delim: ","
