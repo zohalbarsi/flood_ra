@@ -17,6 +17,8 @@ FLOOD_KEY = "TODO_flood_geo_column"
 
 
 def main():
+    if "TODO" in INFOUSA_KEY + FLOOD_KEY:
+        sys.exit("set INFOUSA_KEY and FLOOD_KEY in scripts/03_merge.py first")
     con = duckdb.connect()
     con.sql(f"CREATE VIEW infousa AS SELECT * FROM '{(paths.INFOUSA_PARQUET / '*.parquet').as_posix()}'")
     con.sql(f"CREATE VIEW flood AS SELECT * FROM '{(paths.FLOOD_CLEAN / '*.parquet').as_posix()}'")

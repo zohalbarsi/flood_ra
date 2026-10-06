@@ -13,13 +13,33 @@ Merge of infoUSA business records with flood exposure data.
 
 ## One-time setup on the remote desktop
 
+Needs Python 3.9+ (`python3 --version`; on a cluster you may need
+`module load python` first). Data paths are already filled in for this server
+in `config/paths.example.yaml`:
+
+| data | server folder |
+|---|---|
+| infoUSA raw | `/home/z/zebarsi/Desktop/project/InfoUSA/rawdata` |
+| flood exposure | `/home/z/zebarsi/Desktop/RA/flood_exposure` |
+| pipeline output | `/home/z/zebarsi/Desktop/RA/flood_ra_derived` |
+
 ```bash
+cd ~/Desktop/RA
 git clone https://github.com/zohalbarsi/flood_ra.git
 cd flood_ra
-python -m venv .venv && .venv\Scripts\activate      # Windows (Linux: source .venv/bin/activate)
+python3 -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
-copy config\paths.example.yaml config\paths.yaml   # then edit the paths
+cp config/paths.example.yaml config/paths.yaml   # edit if a path above is wrong
+python scripts/00_inspect_raw.py                  # writes output/logs/data_inventory.md
+git add output/logs/data_inventory.md && git commit -m "Add data inventory" && git push
 ```
+
+If the repo is private, git asks for a GitHub login: use a personal access
+token as the password, or set up an SSH key. If the server cannot reach
+GitHub at all, copy the code over by zip/shared drive and send back the
+inventory file the same way.
+
+Each later session: `source .venv/bin/activate && git pull && python run_all.py`.
 
 ## Pipeline
 

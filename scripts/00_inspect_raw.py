@@ -1,11 +1,15 @@
 """Step 0: inventory the raw data on the server WITHOUT copying any of it.
 
-Writes output/logs/data_inventory.md: file names, sizes, and column
-names/types for every infoUSA file and every file in the flood_exposure folder.
-The report holds no data values, so it is safe to commit and share; it is how
-code written elsewhere learns the schema of data that never leaves the server.
+Writes output/logs/data_inventory.md: every file in the infoUSA and
+flood_exposure folders with its size, plus the delimiter, header and column
+names/types of each tabular file. The report holds no data values, so it is
+safe to commit and share; it is how code written elsewhere learns the schema
+of data that never leaves the server.
 """
+from __future__ import annotations
+
 import sys
+from collections import Counter
 from pathlib import Path
 
 import duckdb
@@ -13,43 +17,55 @@ import duckdb
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 from flood_ra import paths  # noqa: E402
 
-TABULAR = {".csv", ".txt", ".gz", ".parquet", ".dta"}
+TEXT = {".csv", ".txt", ".tsv", ".dat", ".gz"}
 
 
-def describe(con, f: Path, delim: str | None = None) -> str:
+def describe(con, f: Path) -> list[str]:
+    """Column names/types of one file; nothing for non-tabular files."""
+    suffix = f.suffix.lower()
     try:
-        if f.suffix == ".parquet":
-            rel = f"read_parquet('{f.as_posix()}')"
-        elif f.suffix == ".dta":
+        if suffix == ".dta":
             import pandas as pd
-            it = pd.read_stata(f, iterator=True)
-            return "\n".join(f"  - `{c}`" for c in it.varlist)
-        else:
-            d = f", delim='{delim}'" if delim else ""
-            rel = f"read_csv('{f.as_posix()}', all_varchar=true, sample_size=20000{d})"
-        cols = con.sql(f"DESCRIBE SELECT * FROM {rel}").fetchall()
-        return "\n".join(f"  - `{c[0]}` ({c[1]})" for c in cols)
+            with pd.read_stata(f, iterator=True) as reader:
+                return [f"  - `{v}`: {label}" for v, label in reader.variable_labels().items()]
+        if suffix == ".parquet":
+            cols = con.sql(f"DESCRIBE SELECT * FROM read_parquet('{f.as_posix()}')").fetchall()
+            return [f"  - `{c[0]}` ({c[1]})" for c in cols]
+        if suffix in TEXT:
+            delim, header, cols = con.sql(
+                "SELECT Delimiter, HasHeader, Columns "
+                f"FROM sniff_csv('{f.as_posix()}', sample_size=20000)"
+            ).fetchone()
+            out = [f"  delimiter {delim!r}, header {header}, {len(cols)} columns", ""]
+            return out + [f"  - `{c['name']}` ({c['type']})" for c in cols]
     except Exception as e:  # noqa: BLE001
-        return f"  - could not read: {e}"
+        # first line only: later lines of a CSV error can quote a data row
+        return [f"  - could not read: {type(e).__name__}: {str(e).splitlines()[0][:150]}"]
+    return []
 
 
-def section(con, title: str, files: list[Path], delim=None) -> list[str]:
-    out = [f"## {title}", "", f"{len(files)} files", ""]
+def section(con, title: str, root: Path, glob: str | None = None) -> list[str]:
+    files = sorted(p for p in root.rglob("*") if p.is_file())
+    sizes = {p: p.stat().st_size / 1e9 for p in files}
+    exts = Counter(p.suffix.lower() or "(none)" for p in files)
+    out = [f"## {title}", "", f"`{root}`: {len(files)} files, {sum(sizes.values()):.1f} GB", "",
+           "by extension: " + ", ".join(f"{e} ({n})" for e, n in exts.most_common()), ""]
+    if glob is not None:
+        n = sum(1 for p in root.glob(glob) if p.is_file())
+        out += [f"**{n} match infousa_glob `{glob}`** (the files step 01 converts)", ""]
     for f in files:
-        out.append(f"### `{f.name}` ({f.stat().st_size / 1e9:.2f} GB)")
-        if f.suffix.lower() in TABULAR:
-            out.append(describe(con, f, delim))
+        out.append(f"### `{f.relative_to(root)}` ({sizes[f]:.2f} GB)")
+        out += describe(con, f)
         out.append("")
     return out
 
 
 def main():
+    paths.require(paths.INFOUSA_RAW, paths.FLOOD_EXPOSURE)
     con = duckdb.connect()
-    infousa = sorted(paths.INFOUSA_RAW.glob(paths.INFOUSA_GLOB))
-    flood = sorted(p for p in paths.FLOOD_EXPOSURE.rglob("*") if p.is_file())
     lines = ["# Data inventory (schema only, no values)", ""]
-    lines += section(con, f"infoUSA ({paths.INFOUSA_GLOB})", infousa, paths.INFOUSA_DELIM)
-    lines += section(con, "flood_exposure", flood)
+    lines += section(con, "infoUSA", paths.INFOUSA_RAW, paths.INFOUSA_GLOB)
+    lines += section(con, "flood_exposure", paths.FLOOD_EXPOSURE)
     out = paths.LOG_DIR / "data_inventory.md"
     out.write_text("\n".join(lines))
     print(f"wrote {out}")

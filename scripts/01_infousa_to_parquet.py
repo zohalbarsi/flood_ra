@@ -16,6 +16,7 @@ from flood_ra import paths  # noqa: E402
 
 
 def main(overwrite: bool = False):
+    paths.require(paths.INFOUSA_RAW)
     con = duckdb.connect()
     con.sql("SET preserve_insertion_order = false")  # lower memory use
     files = sorted(paths.INFOUSA_RAW.glob(paths.INFOUSA_GLOB))

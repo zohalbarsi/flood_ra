@@ -1,15 +1,20 @@
-# Copy this file to config/paths.yaml on each machine and edit the paths.
-# config/paths.yaml is gitignored, so each machine keeps its own copy.
-# Use forward slashes even on Windows (e.g. "D:/data/infoUSA").
+# Data locations on the remote desktop. On the server run once:
+#   cp config/paths.example.yaml config/paths.yaml
+# then fix anything below that is wrong. config/paths.yaml is gitignored,
+# so your edits there never conflict with `git pull`. "~" means your home folder.
 
-# Read-only raw inputs (never modified by the pipeline)
-infousa_raw: "D:/data/infoUSA/raw"
-flood_exposure: "D:/projects/flood_exposure"
+# Read-only raw inputs (the pipeline never writes here).
+# The infoUSA path was given as /Desktop/project/InfoUSA/rawdata; it is assumed
+# to sit under your home folder like the flood folder. Check with `ls`.
+infousa_raw: "/home/z/zebarsi/Desktop/project/InfoUSA/rawdata"
+flood_exposure: "/home/z/zebarsi/Desktop/RA/flood_exposure"
 
-# Where the pipeline writes intermediate/clean files (big, stays on server)
-derived: "D:/projects/flood_ra_derived"
+# Where the pipeline writes its Parquet and merged files. These get large:
+# check your quota (`quota -s` or `df -h ~`) and point this at scratch or
+# project space if home is small.
+derived: "/home/z/zebarsi/Desktop/RA/flood_ra_derived"
 
-# File pattern for raw infoUSA files inside infousa_raw (glob, recursive ok)
+# Which files inside infousa_raw step 01 converts (glob, "**/" = any subfolder),
+# and their delimiter ("," or "|" or "\t"). Set both from data_inventory.md.
 infousa_glob: "**/*.csv"
-# Delimiter of the raw infoUSA files ("," or "|" or "\t")
 infousa_delim: ","

@@ -16,6 +16,7 @@ from flood_ra import paths  # noqa: E402
 
 
 def main():
+    paths.require(paths.FLOOD_EXPOSURE)
     con = duckdb.connect()
     for f in sorted(paths.FLOOD_EXPOSURE.rglob("*")):
         out = paths.FLOOD_CLEAN / f"{f.stem}.parquet"
