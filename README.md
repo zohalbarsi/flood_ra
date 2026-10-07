@@ -108,6 +108,10 @@ Raw inputs are read-only: the pipeline never writes into `infousa_raw` or
 - **Merge key: `GE_ALS_*_2010` columns.** They match 100% of tracts and block
   groups in every year. The `GE_CENSUS_*` columns match ~43% in 2007-2017
   (another tract vintage) and are empty from 2018 on.
+- **Block level: built** from household coordinates (no block code in
+  infoUSA). 99.7-99.9% of households in the flood counties fall in a block.
+  For geocode level `P` the block lies in the household's census tract
+  99-100% of the time.
 - **2023: `alt/` version**: the same families as main, identical on every
   shared column, plus title, age and gender. **2024: main**: both versions
   have the same families, but `alt/` has no ages, a coarser ethnicity coding,
@@ -132,9 +136,11 @@ Raw inputs are read-only: the pipeline never writes into `infousa_raw` or
 - **Baseline year.** Florence hit in September 2018; whether the 2018 file
   shows pre- or post-storm addresses depends on when it was compiled.
 - **Geocode precision for the block merge.** A household's block is only as
-  good as its coordinates; `block_assignment.md` shows how often the block
-  agrees with the household's tract code, separately for geocode level `P`
-  and the other levels.
+  good as its coordinates. For levels other than `P` (10-20% of records) the
+  block agrees with the tract code only 72-83% of the time in 2007-2019
+  (97-99% from 2020, where codes and coordinates likely come from the same,
+  possibly coarse, geocode). Use block exposure for level `P`; for the other
+  levels prefer tract or block-group exposure, or drop them.
 
 ## Licensing
 
