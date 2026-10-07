@@ -16,8 +16,9 @@ infousa_encoding: latin-1
 #   2023: alt. Same NC families as main and identical on every shared column,
 #         plus title, age and gender, which main lacks.
 #   2024: main. Both versions have the same 6,299,994 NC families, but alt/ has
-#         no ages (Age_1-5 empty for every family) and a coarser ethnicity
-#         coding (10 codes vs 154).
+#         no ages (Age_1-5 empty for every family), a coarser ethnicity coding
+#         (10 codes vs 154), and different gender, latitude and IndividualID
+#         values.
 prefer_version:
   2023: alt
   2024: main
