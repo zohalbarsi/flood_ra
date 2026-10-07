@@ -8,10 +8,14 @@ overrides any entry, e.g. FLOOD_RA_INFOUSA_RAW.
 from __future__ import annotations
 
 import os
+import re
 import sys
+from collections import defaultdict
 from pathlib import Path
 
 import yaml
+
+from flood_ra import settings
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 CONFIG_FILE = REPO_ROOT / "config" / "paths.yaml"
@@ -55,6 +59,28 @@ def infousa_parquet(year: int, version: str = "main") -> Path:
     """Converted file for one year; versions other than main get a suffix."""
     suffix = "" if version == "main" else f"_{version}"
     return INFOUSA_PARQUET / f"infousa_{year}{suffix}.parquet"
+
+
+def converted_versions() -> dict[int, dict[str, Path]]:
+    """{year: {version: file}} for every file step 01 has converted."""
+    out = defaultdict(dict)
+    for p in INFOUSA_PARQUET.glob("infousa_*.parquet"):
+        m = re.fullmatch(r"infousa_(\d{4})(?:_(.+))?\.parquet", p.name)
+        if m:
+            out[int(m.group(1))][m.group(2) or "main"] = p
+    return dict(sorted(out.items()))
+
+
+def chosen_files() -> dict[int, Path]:
+    """Converted file per year: the version settings.yaml prefers, else main."""
+    files = {}
+    for year, versions in converted_versions().items():
+        want = settings.PREFER_VERSION.get(year, "main")
+        if want in versions:
+            files[year] = versions[want]
+        else:
+            print(f"warning: {year} has no '{want}' version; skipped")
+    return files
 
 
 def require(*dirs: Path) -> None:

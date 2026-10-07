@@ -53,6 +53,7 @@ Each later session: `source .venv/bin/activate && git pull && python run_all.py`
 | 01 | `01_infousa_to_parquet.py` | `infousa_parquet/infousa_<year>[_alt].parquet` | `infousa_conversion.txt` |
 | 02 | `02_flood_clean.py` | `flood_clean/flood_{tract,bg,block}.parquet` | `flood_clean.md` |
 | 03 | `03_merge.py` | `merged/infousa_flood_<year>.parquet` | `merge_report.md` |
+| 04 | `04_describe_sample.py` | none | `sample_report.md` |
 
 - **01** reads each yearly `.csv.gz` in place, keeps households whose address
   state is a study state (default: the states in the flood data), drops the
@@ -63,8 +64,12 @@ Each later session: `source .venv/bin/activate && git pull && python run_all.py`
 - **02** builds zero-padded GEOIDs for each flood file and prefixes the flood
   measures by level (`tract_pct_flooded_gfd`, `bg_pct_flooded_gfd`, ...).
 - **03** builds tract and block-group GEOIDs from the infoUSA census columns
-  and left-joins the tract and block-group flood measures. Its report gives
-  match rates, geocode precision, FAMILYID uniqueness and code formats.
+  and left-joins the tract and block-group flood measures, plus
+  `in_flood_counties` (outside those counties the flood measures are missing,
+  not zero). Its report gives match rates under both census column sets.
+- **04** describes the household records to guide sample restrictions:
+  version comparison, families per address, record-status flags, geocode
+  precision, record recency and code formats.
 
 Logs are written to `output/logs/`. Step 01 is the slow one (19 years plus 2
 alternate versions, about 275 GB compressed): expect several hours. Run it in
@@ -86,17 +91,28 @@ or in R `arrow::open_dataset("<derived>/merged", unify_schemas = TRUE)`.
 Raw inputs are read-only: the pipeline never writes into `infousa_raw` or
 `flood_exposure`.
 
-## Open decisions (config/settings.yaml)
+## Decisions so far (config/settings.yaml)
 
-- **2023 and 2024 versions.** The main 2023 file has 86 of 97 columns (no
-  title, age, gender); `alt/` has all 97. 2024 has two full versions. Both
-  are converted; `prefer_version` picks the one merged.
-- **Movers.** Keeping only study-state households drops households in the
-  years after they move out of the study states.
-- **Geography columns.** `geo_family` picks `GE_CENSUS_*` or `GE_ALS_*_2010`;
-  the merge report compares both. The flood block file uses 2010 blocks.
+- **Study area: North Carolina.** The flood data cover 34 NC counties only,
+  so step 01 keeps NC households (34-38% of them live in those counties).
+- **Merge key: `GE_ALS_*_2010` columns.** They match 100% of tracts and block
+  groups in every year. The `GE_CENSUS_*` columns match ~43% in 2007-2017
+  (another tract vintage) and are empty from 2018 on.
+- **2023: `alt/` version** (same NC households as main, but all 97 columns).
+  **2024: main** (both versions have the same number of NC households).
+
+## Open questions
+
+- **Sample definition.** The file has more records than NC has households
+  (4.4M in 2007, 7.8M in 2025, against roughly 3.7-4M households), so it
+  likely includes non-primary families, stale or vacant records.
+  `sample_report.md` shows the flags to restrict on.
+- **Movers.** Keeping only NC households drops families once they move out
+  of state.
+- **Baseline year.** Florence hit in September 2018; whether the 2018 file
+  shows pre- or post-storm addresses depends on when it was compiled.
 - **Block level.** infoUSA has no block code, so a block merge needs a
-  spatial join of the household coordinates to the block polygons (the
+  spatial join of household coordinates to the block polygons (the
   `.geojson`); not built yet.
 
 ## Licensing

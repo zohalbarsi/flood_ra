@@ -11,12 +11,13 @@ infousa_delim: ","
 infousa_encoding: latin-1
 
 # Years with two versions: which one the merge uses ("main" = top folder,
-# otherwise the subfolder name). Both versions are converted, so their row
-# counts can be compared in output/logs/infousa_conversion.txt.
-#   2023: main file has 86 of 97 columns (no title, age, gender); alt/ has all 97
-#   2024: main and alt/ both have all 97 columns; difference unknown
+# otherwise the subfolder name). Both versions are converted; sample_report.md
+# compares them household by household.
+#   2023: alt. Same NC households as main (5,717,475 vs 5,717,477) but all 97
+#         columns; main lacks title, age and gender.
+#   2024: main. Both versions have 6,299,994 NC households and all 97 columns.
 prefer_version:
-  2023: main
+  2023: alt
   2024: main
 
 # Keep households whose address state is one of these postal codes.
@@ -35,5 +36,7 @@ flood_files:
 # Which infoUSA columns build the tract / block-group IDs for the merge:
 #   census:  GE_CENSUS_STATE_2010, GE_CENSUS_COUNTY, GE_CENSUS_TRACT, GE_CENSUS_BG
 #   als2010: GE_CENSUS_STATE_2010, GE_ALS_COUNTY_CODE_2010, GE_ALS_CENSUS_TRACT_2010, GE_ALS_CENSUS_BG_2010
-# output/logs/merge_report.md shows the match rate under both.
-geo_family: census
+# output/logs/merge_report.md shows the match rate under both. First real run:
+# als2010 matches 100% of tracts and block groups in every year; census matches
+# ~43% in 2007-2017 (another tract vintage) and is empty from 2018.
+geo_family: als2010
