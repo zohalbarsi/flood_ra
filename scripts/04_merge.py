@@ -1,8 +1,10 @@
-"""Step 3: merge infoUSA households with flood exposure, one file per year.
+"""Step 4: merge infoUSA households with flood exposure, one file per year.
 
 Builds 11-digit tract and 12-digit block-group GEOIDs from the infoUSA census
 columns (geo_family in settings.yaml picks the column set) and left-joins the
-tract and block-group flood measures. Adds in_flood_counties: whether the
+tract and block-group flood measures. Adds the household's census block from
+step 03 (block_geoid, via its coordinates) with the block flood measures,
+latitude and longitude as numbers, and in_flood_counties: whether the
 household's county is covered by the flood data. Outside those counties the
 flood measures are missing, not zero. Writes
 derived/merged/infousa_flood_<year>.parquet and output/logs/merge_report.md
@@ -29,9 +31,12 @@ def main() -> None:
     files = paths.chosen_files()
     if not files:
         sys.exit(f"no converted files in {paths.INFOUSA_PARQUET}; run step 01 first")
+    if not paths.POINT_BLOCKS.exists():
+        sys.exit(f"{paths.POINT_BLOCKS} not found; run step 03 first")
     con = db.connect(threads=paths.THREADS * paths.PARALLEL)
     geo.define_macros(con)
-    for level in ("tract", "bg"):
+    con.sql(f"CREATE TABLE point_blocks AS SELECT * FROM read_parquet('{paths.POINT_BLOCKS.as_posix()}')")
+    for level in ("tract", "bg", "block"):
         f = paths.FLOOD_CLEAN / f"flood_{level}.parquet"
         con.sql(f"CREATE TABLE flood_{level} AS SELECT * FROM read_parquet('{f.as_posix()}')")
         n, ids = con.sql(f"SELECT count(*), count(DISTINCT {level}_geoid) FROM flood_{level}").fetchone()
@@ -48,14 +53,20 @@ def main() -> None:
             COPY (
                 SELECT h.*,
                        CASE WHEN h.tract_geoid IS NOT NULL THEN c.county IS NOT NULL END AS in_flood_counties,
-                       t.* EXCLUDE (tract_geoid), b.* EXCLUDE (bg_geoid)
-                FROM (SELECT *, {geo.tract_geoid(fam)} AS tract_geoid,
-                                {geo.bg_geoid(fam)} AS bg_geoid FROM {src}) h
+                       pb.block_geoid,
+                       t.* EXCLUDE (tract_geoid), b.* EXCLUDE (bg_geoid), k.* EXCLUDE (block_geoid)
+                FROM (SELECT *, {geo.tract_geoid(fam)} AS tract_geoid, {geo.bg_geoid(fam)} AS bg_geoid,
+                                {geo.LATITUDE} AS latitude, {geo.LONGITUDE} AS longitude FROM {src}) h
                 LEFT JOIN covered c ON left(h.tract_geoid, 5) = c.county
                 LEFT JOIN flood_tract t ON t.tract_geoid = h.tract_geoid
                 LEFT JOIN flood_bg b ON b.bg_geoid = h.bg_geoid
+                LEFT JOIN point_blocks pb ON pb.latitude = h.latitude AND pb.longitude = h.longitude
+                LEFT JOIN flood_block k ON k.block_geoid = pb.block_geoid
             ) TO '{out.as_posix()}' (FORMAT parquet, COMPRESSION zstd)
         """)
+        block = con.sql("SELECT count(block_geoid) FILTER (WHERE in_flood_counties) / "
+                        "nullif(count(*) FILTER (WHERE in_flood_counties), 0) "
+                        f"FROM read_parquet('{out.as_posix()}')").fetchone()[0]
         version = f.stem.split("_", 2)[2] if f.stem.count("_") > 1 else "main"
         for family in geo.FAMILIES:
             r = con.sql(f"""
@@ -68,10 +79,10 @@ def main() -> None:
                 LEFT JOIN flood_bg fb ON h.b = fb.bg_geoid
             """).fetchone()
             match.append([year, version, family + (" (used)" if family == fam else ""), f"{r[0]:,}",
-                          pct(r[1]), pct(r[2]), pct(r[3]), pct(r[4])])
+                          pct(r[1]), pct(r[2]), pct(r[3]), pct(r[4]), pct(block) if family == fam else ""])
         used = next(m for m in match[-len(geo.FAMILIES):] if m[2].endswith("(used)"))
         print(f"{year}: merged -> {out.name}  (in flood counties {used[5]}, "
-              f"tract match {used[6]}, BG match {used[7]})", flush=True)
+              f"tract match {used[6]}, BG match {used[7]}, block found {used[8]})", flush=True)
 
     REPORT.write_text("\n".join([
         "# Merge report (counts and shares only)", "",
@@ -80,9 +91,10 @@ def main() -> None:
         "households: study-state households in the converted file (version: which file). "
         "valid code: a well-formed tract code. in flood counties: the county appears in the "
         "flood data. tract / BG match: share of the in-county households whose tract / block "
-        "group is in the flood data.", "",
+        "group is in the flood data. block found: share of the in-county households placed in a "
+        "block by step 03 (details in block_assignment.md).", "",
         *table(pd.DataFrame(match, columns=["year", "version", "columns", "households", "valid code",
-                                            "in flood counties", "tract match", "BG match"])),
+                                            "in flood counties", "tract match", "BG match", "block found"])),
     ]))
     print(f"wrote {REPORT}")
 

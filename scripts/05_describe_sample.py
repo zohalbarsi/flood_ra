@@ -1,4 +1,4 @@
-"""Step 4: describe the converted household records, year by year.
+"""Step 5: describe the converted household records, year by year.
 
 Writes output/logs/sample_report.md (counts and shares only, safe to commit)
 to help choose sample restrictions: whether the two versions of a year hold

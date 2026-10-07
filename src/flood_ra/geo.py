@@ -61,6 +61,16 @@ def define_macros(con: duckdb.DuckDBPyConnection) -> None:
         WHEN regexp_full_match(trim(t), '[0-9]{1,6}') THEN right('000000' || trim(t), 6) END""")
     con.sql(r"""CREATE OR REPLACE MACRO norm_bg(b) AS CASE
         WHEN regexp_full_match(trim(b), '0*[0-9]') THEN right(trim(b), 1) END""")
+    # coordinates come as "035.123456", "35.12345678" or "+35.12"; 0 means missing
+    for name, limit in (("parse_lat", 90), ("parse_lon", 180)):
+        con.sql(f"""CREATE OR REPLACE MACRO {name}(x) AS CASE
+            WHEN TRY_CAST(trim(x) AS DOUBLE) BETWEEN -{limit} AND {limit}
+                 AND TRY_CAST(trim(x) AS DOUBLE) != 0 THEN TRY_CAST(trim(x) AS DOUBLE) END""")
+
+
+# SQL for a household's coordinates as numbers (needs define_macros)
+LATITUDE = 'parse_lat("GE_LATITUDE_2010")'
+LONGITUDE = 'parse_lon("GE_LONGITUDE_2010")'
 
 
 def tract_geoid(family: str) -> str:

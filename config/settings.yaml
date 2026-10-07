@@ -35,6 +35,7 @@ flood_files:
   tract: florence_census_tract_flood_exposure.csv
   bg: florence_block_group_flood_exposure.csv
   block: florence_census_block_flood_exposure.csv
+  block_polygons: florence_census_block_flood_exposure.geojson   # outlines for the block merge
 
 # Which infoUSA columns build the tract / block-group IDs for the merge:
 #   census:  GE_CENSUS_STATE_2010, GE_CENSUS_COUNTY, GE_CENSUS_TRACT, GE_CENSUS_BG

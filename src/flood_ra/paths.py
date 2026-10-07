@@ -49,9 +49,12 @@ MEMORY = str(CFG.get("duckdb_memory", "4GB"))
 INFOUSA_PARQUET = DERIVED / "infousa_parquet"   # one file per year (and version)
 FLOOD_CLEAN = DERIVED / "flood_clean"
 MERGED = DERIVED / "merged"
+GEO = DERIVED / "geo"
 DUCKDB_TMP = DERIVED / "duckdb_tmp"
+BLOCK_POLYGONS = FLOOD_CLEAN / "block_polygons.parquet"  # block outlines, WGS84 lon/lat
+POINT_BLOCKS = GEO / "point_blocks.parquet"             # household coordinates -> block
 
-for d in (DERIVED, INFOUSA_PARQUET, FLOOD_CLEAN, MERGED, DUCKDB_TMP, LOG_DIR):
+for d in (DERIVED, INFOUSA_PARQUET, FLOOD_CLEAN, MERGED, GEO, DUCKDB_TMP, LOG_DIR):
     d.mkdir(parents=True, exist_ok=True)
 
 

@@ -44,6 +44,7 @@ GitHub at all, copy the code over by zip/shared drive and send back the
 inventory file the same way.
 
 Each later session: `source .venv/bin/activate && git pull && python run_all.py`.
+When a pull changes `requirements.txt`, run `pip install -r requirements.txt` first.
 
 ## Pipeline
 
@@ -51,9 +52,10 @@ Each later session: `source .venv/bin/activate && git pull && python run_all.py`
 |---|---|---|---|
 | 00 | `00_inspect_raw.py` | none | `data_inventory.md`: files and columns |
 | 01 | `01_infousa_to_parquet.py` | `infousa_parquet/infousa_<year>[_alt].parquet` | `infousa_conversion.txt` |
-| 02 | `02_flood_clean.py` | `flood_clean/flood_{tract,bg,block}.parquet` | `flood_clean.md` |
-| 03 | `03_merge.py` | `merged/infousa_flood_<year>.parquet` | `merge_report.md` |
-| 04 | `04_describe_sample.py` | none | `sample_report.md` |
+| 02 | `02_flood_clean.py` | `flood_clean/flood_{tract,bg,block}.parquet`, `block_polygons.parquet` | `flood_clean.md` |
+| 03 | `03_assign_blocks.py` | `geo/point_blocks.parquet` | `block_assignment.md` |
+| 04 | `04_merge.py` | `merged/infousa_flood_<year>.parquet` | `merge_report.md` |
+| 05 | `05_describe_sample.py` | none | `sample_report.md` |
 
 - **01** reads each yearly `.csv.gz` in place, keeps households whose address
   state is a study state (default: the states in the flood data), drops the
@@ -63,13 +65,21 @@ Each later session: `source .venv/bin/activate && git pull && python run_all.py`
   and counts rejected rows by error type.
 - **02** builds zero-padded GEOIDs for each flood file and prefixes the flood
   measures by level (`tract_pct_flooded_gfd`, `bg_pct_flooded_gfd`, ...).
-- **03** builds tract and block-group GEOIDs from the infoUSA census columns
-  and left-joins the tract and block-group flood measures, plus
-  `in_flood_counties` (outside those counties the flood measures are missing,
-  not zero). Its report gives match rates under both census column sets.
-- **04** describes the household records to guide sample restrictions:
-  version comparison, families per address, record-status flags, geocode
-  precision, record recency and code formats.
+  It also turns the block `.geojson` into outlines in WGS84
+  longitude/latitude, whatever coordinate system the file uses.
+- **03** places each household in a 2010 census block: infoUSA has no block
+  code, so it finds the block outline containing the household's
+  coordinates (point in polygon, once per distinct coordinate across all
+  years). Its report checks the blocks against the households' tract and
+  block-group codes, by geocode level.
+- **04** builds tract and block-group GEOIDs from the infoUSA census columns
+  and left-joins the tract, block-group and block flood measures, plus
+  `block_geoid`, numeric `latitude`/`longitude` and `in_flood_counties`
+  (outside those counties the flood measures are missing, not zero). Its
+  report gives match rates under both census column sets.
+- **05** describes the household records to guide sample restrictions:
+  version comparison, families per address, year-to-year continuity,
+  record-status flags, geocode precision, record recency and code formats.
 
 Logs are written to `output/logs/`. Step 01 is the slow one (19 years plus 2
 alternate versions, about 275 GB compressed): expect several hours. Run it in
@@ -121,9 +131,10 @@ Raw inputs are read-only: the pipeline never writes into `infousa_raw` or
   they leave the state.
 - **Baseline year.** Florence hit in September 2018; whether the 2018 file
   shows pre- or post-storm addresses depends on when it was compiled.
-- **Block level.** infoUSA has no block code, so a block merge needs a
-  spatial join of household coordinates to the block polygons (the
-  `.geojson`); not built yet.
+- **Geocode precision for the block merge.** A household's block is only as
+  good as its coordinates; `block_assignment.md` shows how often the block
+  agrees with the household's tract code, separately for geocode level `P`
+  and the other levels.
 
 ## Licensing
 

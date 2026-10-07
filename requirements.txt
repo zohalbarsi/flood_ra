@@ -2,3 +2,5 @@ duckdb>=1.1
 pandas>=2.1
 pyarrow>=14
 pyyaml>=6
+geopandas>=1.0
+pyogrio>=0.7
