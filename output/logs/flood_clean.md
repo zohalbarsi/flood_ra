@@ -20,3 +20,9 @@
 - malformed GEOIDs 0; GEOIDs that differ from the file's GEOID10 column 0
 - areas by state FIPS: 37: 106,518
 - missing flood shares: pct_flooded_gfd 39,221, pct_flooded_sfincs 34,410, pct_flooded_nc_fldex 3,523, pct_flooded_asu_s1 567
+
+## block outlines: `florence_census_block_flood_exposure.geojson`
+
+- features 106,518; blocks 106,518; ID field GEOID10; coordinate system EPSG:4269 (converted to WGS84 longitude/latitude)
+- invalid outlines repaired 0
+- block IDs in both outlines and CSV 106,518; outlines only 0; CSV only 0
