@@ -15,18 +15,28 @@ identical records: share of FAMILYIDs in both versions whose records match on ev
 Columns that differ between versions (same value: share of shared families with the same value in both):
 
 ```
- year    versions                  column same value distinct main distinct other missing main missing other
- 2024 main vs alt                   Age_1      12.0%            82              0      752,980     6,299,994
- 2024 main vs alt                   Age_2      61.7%            82              0    3,888,698     6,299,994
- 2024 main vs alt                   Age_3      84.0%            82              0    5,293,181     6,299,994
- 2024 main vs alt                   Age_4      92.8%            82              0    5,848,399     6,299,994
- 2024 main vs alt                   Age_5      97.4%            82              0    6,133,988     6,299,994
- 2024 main vs alt        Ethnicity_Code_1       0.1%           154             10            0     3,729,302
- 2024 main vs alt        Ethnicity_Code_2      59.2%           154             10    3,729,302     5,175,825
- 2024 main vs alt        Ethnicity_Code_3      82.2%           143             10    5,175,825     5,778,332
- 2024 main vs alt        Ethnicity_Code_4      91.7%           132             10    5,778,332     6,092,831
- 2024 main vs alt        Ethnicity_Code_5      96.7%           114              0    6,092,831     6,299,994
- 2024 main vs alt ... and 11 more columns                                                                   
+ year    versions           column same value distinct main distinct other missing main missing other
+ 2024 main vs alt            Age_1      12.0%            82              0      752,980     6,299,994
+ 2024 main vs alt            Age_2      61.7%            82              0    3,888,698     6,299,994
+ 2024 main vs alt            Age_3      84.0%            82              0    5,293,181     6,299,994
+ 2024 main vs alt            Age_4      92.8%            82              0    5,848,399     6,299,994
+ 2024 main vs alt            Age_5      97.4%            82              0    6,133,988     6,299,994
+ 2024 main vs alt Ethnicity_Code_1       0.1%           154             10            0     3,729,302
+ 2024 main vs alt Ethnicity_Code_2      59.2%           154             10    3,729,302     5,175,825
+ 2024 main vs alt Ethnicity_Code_3      82.2%           143             10    5,175,825     5,778,332
+ 2024 main vs alt Ethnicity_Code_4      91.7%           132             10    5,778,332     6,092,831
+ 2024 main vs alt Ethnicity_Code_5      96.7%           114              0    6,092,831     6,299,994
+ 2024 main vs alt GE_LATITUDE_2010                                                                   
+ 2024 main vs alt         Gender_1                                                                   
+ 2024 main vs alt         Gender_2                                                                   
+ 2024 main vs alt         Gender_3                                                                   
+ 2024 main vs alt         Gender_4                                                                   
+ 2024 main vs alt         Gender_5                                                                   
+ 2024 main vs alt   IndividualID_1                                                                   
+ 2024 main vs alt   IndividualID_2                                                                   
+ 2024 main vs alt   IndividualID_3                                                                   
+ 2024 main vs alt   IndividualID_4                                                                   
+ 2024 main vs alt   IndividualID_5                                                                   
 ```
 
 ## Records, families and addresses
@@ -58,28 +68,28 @@ records per location > 1 means several families share an address (LOCATIONID).
 
 ## Families followed to the next year
 
-Base: primary families (PRIMARY_FAMILY_IND = 1). found next year: same FAMILYID in the next file (any record). other location: found at a different LOCATIONID (moved within the study states). not found: left the study states, or the record was dropped or re-keyed.
+Base: primary families (PRIMARY_FAMILY_IND = 1). found next year: same FAMILYID in the next file (any record). other location: found at a different LOCATIONID (moved within the study states). not found: left the study states, or the record was dropped or re-keyed. of not found, person found: share of the not-found families whose IndividualID_1 is in the next file under another FAMILYID (a re-keyed or re-formed family).
 
 ```
-     years primary families found next year same location other location not found
-2007->2008        3,775,263           81.7%         75.9%           5.9%     18.3%
-2008->2009        3,637,047           83.7%         77.6%           6.1%     16.3%
-2009->2010        3,785,298           84.2%         78.5%           5.7%     15.8%
-2010->2011        3,771,336           83.5%         77.9%           5.6%     16.5%
-2011->2012        3,729,062           84.8%         78.8%           6.0%     15.2%
-2012->2013        3,763,390           87.0%         80.3%           6.7%     13.0%
-2013->2014        4,000,670           85.1%         78.6%           6.5%     14.9%
-2014->2015        3,937,660           82.1%         76.2%           5.9%     17.9%
-2015->2016        3,808,026           83.9%         76.9%           7.0%     16.1%
-2016->2017        3,886,947           88.6%         82.0%           6.6%     11.4%
-2017->2018        4,026,312           86.9%         79.1%           7.8%     13.1%
-2018->2019        4,140,738           88.0%         81.4%           6.7%     12.0%
-2019->2020        4,168,617           87.8%         81.3%           6.5%     12.2%
-2020->2021        4,308,142           86.4%         80.0%           6.4%     13.6%
-2021->2022        4,409,523           85.3%         79.7%           5.6%     14.7%
-2022->2023        4,294,086           82.2%         76.8%           5.3%     17.8%
-2023->2024        4,035,079           88.2%         81.5%           6.6%     11.8%
-2024->2025        4,312,416           90.7%         84.7%           6.0%      9.3%
+     years primary families found next year same location other location not found of not found: person found
+2007->2008        3,775,263           81.7%         75.9%           5.9%     18.3%                       4.2%
+2008->2009        3,637,047           83.7%         77.6%           6.1%     16.3%                       4.5%
+2009->2010        3,785,298           84.2%         78.5%           5.7%     15.8%                       4.4%
+2010->2011        3,771,336           83.5%         77.9%           5.6%     16.5%                       3.5%
+2011->2012        3,729,062           84.8%         78.8%           6.0%     15.2%                       3.6%
+2012->2013        3,763,390           87.0%         80.3%           6.7%     13.0%                       4.9%
+2013->2014        4,000,670           85.1%         78.6%           6.5%     14.9%                       3.9%
+2014->2015        3,937,660           82.1%         76.2%           5.9%     17.9%                       3.4%
+2015->2016        3,808,026           83.9%         76.9%           7.0%     16.1%                       4.4%
+2016->2017        3,886,947           88.6%         82.0%           6.6%     11.4%                       4.6%
+2017->2018        4,026,312           86.9%         79.1%           7.8%     13.1%                       5.1%
+2018->2019        4,140,738           88.0%         81.4%           6.7%     12.0%                       4.2%
+2019->2020        4,168,617           87.8%         81.3%           6.5%     12.2%                       4.5%
+2020->2021        4,308,142           86.4%         80.0%           6.4%     13.6%                       4.3%
+2021->2022        4,409,523           85.3%         79.7%           5.6%     14.7%                       3.9%
+2022->2023        4,294,086           82.2%         76.8%           5.3%     17.8%                       2.9%
+2023->2024        4,035,079           88.2%         81.5%           6.6%     11.8%                       4.3%
+2024->2025        4,312,416           90.7%         84.7%           6.0%      9.3%                       5.1%
 ```
 
 ## Record flags (share of records by code)
