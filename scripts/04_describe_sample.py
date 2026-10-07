@@ -2,8 +2,10 @@
 
 Writes output/logs/sample_report.md (counts and shares only, safe to commit)
 to help choose sample restrictions: whether the two versions of a year hold
-the same records, families per address, the record-status flags, geocode
-precision, how recently records were verified, and the formats of key columns.
+the same records (and which columns differ), families per address, whether
+FAMILYID follows families from one year to the next, the record-status
+flags, geocode precision, how recently records were verified, and the
+formats of key columns.
 """
 from __future__ import annotations
 
@@ -29,10 +31,11 @@ def columns(con, f: Path) -> list[str]:
     return [r[0] for r in con.sql(f"DESCRIBE SELECT * FROM read_parquet('{f.as_posix()}')").fetchall()]
 
 
-def compare_versions(con) -> pd.DataFrame:
+def compare_versions(con) -> tuple[pd.DataFrame, pd.DataFrame]:
     """Per year with two versions: FAMILYIDs in both / one only, and the share
-    of shared FAMILYIDs whose records are identical on every common column."""
-    rows = []
+    of shared FAMILYIDs whose records are identical on every common column;
+    plus, per differing column, how often the two versions agree."""
+    rows, diffs = [], []
     for year, versions in paths.converted_versions().items():
         main = versions.get("main")
         for name, other in versions.items():
@@ -49,8 +52,35 @@ def compare_versions(con) -> pd.DataFrame:
                        ON a.f = b.f""").fetchone()
             rows.append([year, f"main vs {name}", f"{both:,}", f"{only_main:,}", f"{only_other:,}",
                          pct(same / both if both else None), len(shared)])
-    return pd.DataFrame(rows, columns=["year", "versions", "FAMILYID in both", "main only", "other only",
-                                       "identical records", "columns compared"])
+            diffs += column_differences(con, main, other, shared, year, name)
+    return (pd.DataFrame(rows, columns=["year", "versions", "FAMILYID in both", "main only", "other only",
+                                        "identical records", "columns compared"]),
+            pd.DataFrame(diffs, columns=["year", "versions", "column", "same value", "distinct main",
+                                         "distinct other", "missing main", "missing other"]))
+
+
+def column_differences(con, main: Path, other: Path, shared: list[str], year: int, name: str) -> list[list]:
+    """Columns whose values differ between two versions for the families in
+    both. Finds them by comparing order-free checksums per column, then
+    measures agreement family by family for up to 10 of them."""
+    sums = [con.sql("SELECT " + ", ".join(f'sum(hash("{c}"))' for c in shared)
+                    + f" FROM read_parquet('{f.as_posix()}') WHERE FAMILYID IN "
+                    f"(SELECT FAMILYID FROM read_parquet('{g.as_posix()}'))").fetchone()
+            for f, g in ((main, other), (other, main))]  # families in both versions only
+    differ = [c for c, x, y in zip(shared, *sums) if x != y]
+    rows = []
+    for c in differ[:10]:
+        same, d_main, d_other, m_main, m_other = con.sql(f"""
+            SELECT avg((a.v IS NOT DISTINCT FROM b.v)::INT), count(DISTINCT a.v), count(DISTINCT b.v),
+                   count(*) FILTER (WHERE a.v IS NULL), count(*) FILTER (WHERE b.v IS NULL)
+            FROM (SELECT FAMILYID AS f, "{c}" AS v FROM read_parquet('{main.as_posix()}')) a
+            JOIN (SELECT FAMILYID AS f, "{c}" AS v FROM read_parquet('{other.as_posix()}')) b ON a.f = b.f
+        """).fetchone()
+        rows.append([year, f"main vs {name}", c, pct(same), f"{d_main:,}", f"{d_other:,}",
+                     f"{m_main:,}", f"{m_other:,}"])
+    if len(differ) > 10:
+        rows.append([year, f"main vs {name}", f"... and {len(differ) - 10} more columns", "", "", "", "", ""])
+    return rows
 
 
 def families(con, files: dict[int, Path]) -> pd.DataFrame:
@@ -61,6 +91,24 @@ def families(con, files: dict[int, Path]) -> pd.DataFrame:
         rows.append([year, f"{n:,}", f"{fam:,}", f"{loc:,}", f"{n / loc:.2f}" if loc else ""])
     return pd.DataFrame(rows, columns=["year", "records", "distinct FAMILYID", "distinct LOCATIONID",
                                        "records per location"])
+
+
+def continuity(con, files: dict[int, Path]) -> pd.DataFrame:
+    """Primary families (PRIMARY_FAMILY_IND = 1) in one year: share found the
+    next year under the same FAMILYID, at the same or a different LOCATIONID."""
+    rows = []
+    years = sorted(files)
+    for y0, y1 in zip(years, years[1:]):
+        n, found, same = con.sql(f"""
+            SELECT count(*), count(b.f), count(*) FILTER (WHERE a.loc = b.loc)
+            FROM (SELECT FAMILYID AS f, LOCATIONID AS loc FROM read_parquet('{files[y0].as_posix()}')
+                  WHERE trim(PRIMARY_FAMILY_IND) = '1') a
+            LEFT JOIN (SELECT FAMILYID AS f, LOCATIONID AS loc FROM read_parquet('{files[y1].as_posix()}')) b
+                   ON a.f = b.f""").fetchone()
+        rows.append([f"{y0}->{y1}", f"{n:,}", pct(found / n if n else None), pct(same / n if n else None),
+                     pct((found - same) / n if n else None), pct((n - found) / n if n else None)])
+    return pd.DataFrame(rows, columns=["years", "primary families", "found next year", "same location",
+                                       "other location", "not found"])
 
 
 def recency(con, files: dict[int, Path]) -> pd.DataFrame:
@@ -102,13 +150,23 @@ def main() -> None:
            "Files used: " + ", ".join(f"{y} {f.stem.split('_', 2)[2] if f.stem.count('_') > 1 else 'main'}"
                                       for y, f in files.items()), ""]
     print("comparing versions", flush=True)
+    versions, diffs = compare_versions(con)
     out += ["## Versions of the same year", "",
             "identical records: share of FAMILYIDs in both versions whose records match on every "
-            "common column.", "", *table(compare_versions(con))]
+            "common column.", "", *table(versions)]
+    if len(diffs):
+        out += ["Columns that differ between versions (same value: share of shared families with "
+                "the same value in both):", "", *table(diffs)]
     print("families and locations", flush=True)
     out += ["## Records, families and addresses", "",
             "records per location > 1 means several families share an address (LOCATIONID).", "",
             *table(families(con, files))]
+    print("year-to-year continuity", flush=True)
+    out += ["## Families followed to the next year", "",
+            "Base: primary families (PRIMARY_FAMILY_IND = 1). found next year: same FAMILYID in the "
+            "next file (any record). other location: found at a different LOCATIONID (moved within "
+            "the study states). not found: left the study states, or the record was dropped or re-keyed.",
+            "", *table(continuity(con, files))]
     out += ["## Record flags (share of records by code)", "",
             "Codes up to 4 characters shown as they are, longer values as patterns. "
             "The meaning of each code is in the Data Axle data dictionary.", ""]

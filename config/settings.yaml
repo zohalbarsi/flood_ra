@@ -13,9 +13,10 @@ infousa_encoding: latin-1
 # Years with two versions: which one the merge uses ("main" = top folder,
 # otherwise the subfolder name). Both versions are converted; sample_report.md
 # compares them household by household.
-#   2023: alt. Same NC households as main (5,717,475 vs 5,717,477) but all 97
-#         columns; main lacks title, age and gender.
-#   2024: main. Both versions have 6,299,994 NC households and all 97 columns.
+#   2023: alt. Same NC families as main and identical on every shared column,
+#         plus title, age and gender, which main lacks.
+#   2024: main for now. Both versions have the same 6,299,994 NC families, but
+#         no record is identical; sample_report.md lists the differing columns.
 prefer_version:
   2023: alt
   2024: main
