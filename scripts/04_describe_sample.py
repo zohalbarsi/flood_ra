@@ -62,7 +62,8 @@ def compare_versions(con) -> tuple[pd.DataFrame, pd.DataFrame]:
 def column_differences(con, main: Path, other: Path, shared: list[str], year: int, name: str) -> list[list]:
     """Columns whose values differ between two versions for the families in
     both. Finds them by comparing order-free checksums per column, then
-    measures agreement family by family for up to 10 of them."""
+    measures agreement family by family for the first 10 (the rest are
+    listed by name only)."""
     sums = [con.sql("SELECT " + ", ".join(f'sum(hash("{c}"))' for c in shared)
                     + f" FROM read_parquet('{f.as_posix()}') WHERE FAMILYID IN "
                     f"(SELECT FAMILYID FROM read_parquet('{g.as_posix()}'))").fetchone()
@@ -78,8 +79,8 @@ def column_differences(con, main: Path, other: Path, shared: list[str], year: in
         """).fetchone()
         rows.append([year, f"main vs {name}", c, pct(same), f"{d_main:,}", f"{d_other:,}",
                      f"{m_main:,}", f"{m_other:,}"])
-    if len(differ) > 10:
-        rows.append([year, f"main vs {name}", f"... and {len(differ) - 10} more columns", "", "", "", "", ""])
+    for c in differ[10:]:
+        rows.append([year, f"main vs {name}", c, "", "", "", "", ""])
     return rows
 
 
@@ -95,20 +96,28 @@ def families(con, files: dict[int, Path]) -> pd.DataFrame:
 
 def continuity(con, files: dict[int, Path]) -> pd.DataFrame:
     """Primary families (PRIMARY_FAMILY_IND = 1) in one year: share found the
-    next year under the same FAMILYID, at the same or a different LOCATIONID."""
+    next year under the same FAMILYID, at the same or a different LOCATIONID;
+    and, of those not found, the share whose first person (IndividualID_1)
+    appears in the next year's file under another FAMILYID."""
     rows = []
     years = sorted(files)
     for y0, y1 in zip(years, years[1:]):
-        n, found, same = con.sql(f"""
-            SELECT count(*), count(b.f), count(*) FILTER (WHERE a.loc = b.loc)
-            FROM (SELECT FAMILYID AS f, LOCATIONID AS loc FROM read_parquet('{files[y0].as_posix()}')
-                  WHERE trim(PRIMARY_FAMILY_IND) = '1') a
-            LEFT JOIN (SELECT FAMILYID AS f, LOCATIONID AS loc FROM read_parquet('{files[y1].as_posix()}')) b
-                   ON a.f = b.f""").fetchone()
-        rows.append([f"{y0}->{y1}", f"{n:,}", pct(found / n if n else None), pct(same / n if n else None),
-                     pct((found - same) / n if n else None), pct((n - found) / n if n else None)])
+        nxt = f"read_parquet('{files[y1].as_posix()}')"
+        people = " UNION ALL ".join(f"SELECT IndividualID_{k} AS i FROM {nxt}" for k in range(1, 6))
+        n, found, same, lost, relinked = con.sql(f"""
+            WITH a AS (SELECT FAMILYID AS f, LOCATIONID AS loc, IndividualID_1 AS i
+                       FROM read_parquet('{files[y0].as_posix()}') WHERE trim(PRIMARY_FAMILY_IND) = '1'),
+                 b AS (SELECT FAMILYID AS f, LOCATIONID AS loc FROM {nxt}),
+                 ids AS (SELECT DISTINCT i FROM ({people}) WHERE i IS NOT NULL)
+            SELECT count(*), count(b.f), count(*) FILTER (WHERE a.loc = b.loc),
+                   count(*) FILTER (WHERE b.f IS NULL),
+                   count(*) FILTER (WHERE b.f IS NULL AND a.i IN (SELECT i FROM ids))
+            FROM a LEFT JOIN b ON a.f = b.f""").fetchone()
+        share = (lambda x: pct(x / n if n else None))
+        rows.append([f"{y0}->{y1}", f"{n:,}", share(found), share(same), share(found - same), share(lost),
+                     pct(relinked / lost if lost else None)])
     return pd.DataFrame(rows, columns=["years", "primary families", "found next year", "same location",
-                                       "other location", "not found"])
+                                       "other location", "not found", "of not found: person found"])
 
 
 def recency(con, files: dict[int, Path]) -> pd.DataFrame:
@@ -165,7 +174,9 @@ def main() -> None:
     out += ["## Families followed to the next year", "",
             "Base: primary families (PRIMARY_FAMILY_IND = 1). found next year: same FAMILYID in the "
             "next file (any record). other location: found at a different LOCATIONID (moved within "
-            "the study states). not found: left the study states, or the record was dropped or re-keyed.",
+            "the study states). not found: left the study states, or the record was dropped or re-keyed. "
+            "of not found, person found: share of the not-found families whose IndividualID_1 is in the "
+            "next file under another FAMILYID (a re-keyed or re-formed family).",
             "", *table(continuity(con, files))]
     out += ["## Record flags (share of records by code)", "",
             "Codes up to 4 characters shown as they are, longer values as patterns. "

@@ -99,9 +99,9 @@ Raw inputs are read-only: the pipeline never writes into `infousa_raw` or
   groups in every year. The `GE_CENSUS_*` columns match ~43% in 2007-2017
   (another tract vintage) and are empty from 2018 on.
 - **2023: `alt/` version**: the same families as main, identical on every
-  shared column, plus title, age and gender. **2024: main for now**: both
-  versions have the same families but differ in some columns (see
-  `sample_report.md`).
+  shared column, plus title, age and gender. **2024: main**: both versions
+  have the same families, but `alt/` has no ages and a coarser ethnicity
+  coding.
 
 ## Open questions
 
@@ -112,8 +112,11 @@ Raw inputs are read-only: the pipeline never writes into `infousa_raw` or
   drop for location-based exposure: `VACANT = 1`, `USPSNOSTATS = 1`, PO boxes
   (`ADDRESSTYPE = P`) and coarse geocodes (`GE_CENSUS_LEVEL_2010` other than
   `P`). Confirm the codes in the Data Axle data dictionary.
-- **Movers.** Keeping only NC households drops families once they move out
-  of state.
+- **Movers and attrition.** Of each year's primary families, 82-91% appear
+  the next year under the same FAMILYID (5-8% at a new NC address) and 9-18%
+  do not, more than out-of-state moves explain; some movers likely get a new
+  FAMILYID. `sample_report.md` checks whether the person (IndividualID_1)
+  reappears. Keeping only NC households also drops families once they leave.
 - **Baseline year.** Florence hit in September 2018; whether the 2018 file
   shows pre- or post-storm addresses depends on when it was compiled.
 - **Block level.** infoUSA has no block code, so a block merge needs a
