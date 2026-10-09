@@ -1,7 +1,4 @@
-# Data locations on the remote desktop. On the server run once:
-#   cp config/paths.example.yaml config/paths.yaml
-# then fix anything below that is wrong. config/paths.yaml is gitignored,
-# so your edits there never conflict with `git pull`. "~" means your home folder.
+# Data locations on the remote desktop. 
 
 # Read-only raw inputs (the pipeline never writes here).
 infousa_raw: "/home/z/zebarsi/Desktop/project/InfoUSA/rawdata"
