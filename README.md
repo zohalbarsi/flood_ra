@@ -109,9 +109,11 @@ Raw inputs are read-only: the pipeline never writes into `infousa_raw` or
   counties only (34-38% of NC households live in them). SC households are
   kept as a comparison group and so that families moving between NC and SC
   are followed; they have no flood measures (`in_flood_counties` is false).
-- **Merge key: `GE_ALS_*_2010` columns.** They match 100% of tracts and block
-  groups in every year. The `GE_CENSUS_*` columns match ~43% in 2007-2017
-  (another tract vintage) and are empty from 2018 on.
+- **Merge key: `GE_ALS_*_2010` columns**, the Census 2010 geography in the
+  data dictionary. They match 100% of tracts and block groups in every year.
+  The `GE_CENSUS_*` columns are Census 2000 geography (hence the ~43% match in
+  2007-2017) and are empty from 2018 on. Tract `000000` means unknown and is
+  treated as missing.
 - **Block level: built** from household coordinates (no block code in
   infoUSA). 99.7-99.9% of households in the flood counties fall in a block.
   For geocode level `P` the block lies in the household's census tract
@@ -124,12 +126,17 @@ Raw inputs are read-only: the pipeline never writes into `infousa_raw` or
 ## Open questions
 
 - **Sample definition.** The file has more records than NC has households
-  (4.4M in 2007, 7.8M in 2025) because addresses carry extra, non-primary
-  families. `PRIMARY_FAMILY_IND = 1` leaves about one family per address:
-  3.77M in 2010 against 3.75M households in the 2010 Census. Candidates to
-  drop for location-based exposure: `VACANT = 1`, `USPSNOSTATS = 1`, PO boxes
-  (`ADDRESSTYPE = P`) and coarse geocodes (`GE_CENSUS_LEVEL_2010` other than
-  `P`). Confirm the codes in the Data Axle data dictionary.
+  (4.4M in 2007, 7.8M in 2025). Per the data dictionary, `LOCATIONID` links a
+  primary family with its subfamilies, so a `LOCATIONID` is a household and
+  `PRIMARY_FAMILY_IND = 1` marks its primary family: about one per address,
+  3.77M in 2010 against 3.75M households in the 2010 Census. The subfamilies
+  grow from 14% to 39% of records, far above Census subfamily rates;
+  `sample_report.md` checks whether their adults are also listed in the
+  primary family. Candidates to drop for location-based exposure:
+  `VACANT = 1`, `USPSNOSTATS = 1`, PO boxes (`ADDRESSTYPE = P`), nursing and
+  retirement homes (`LOCATION_TYPE` N, R) and coarse geocodes
+  (`GE_CENSUS_LEVEL_2010` other than `P`; the dictionary gives no codes for
+  this field).
 - **Movers and attrition.** Of each year's primary families, 82-91% appear
   the next year under the same FAMILYID (5-8% at a new NC address) and 9-18%
   do not, more than out-of-state moves explain. Only 3-5% of the missing
@@ -146,6 +153,29 @@ Raw inputs are read-only: the pipeline never writes into `infousa_raw` or
   (97-99% from 2020, where codes and coordinates likely come from the same,
   possibly coarse, geocode). Use block exposure for level `P`; for the other
   levels prefer tract or block-group exposure, or drop them.
+
+## Codebook notes (Data Axle data dictionary)
+
+- `HEAD_HH_AGE_CODE`: A <25, B 25-29, ... I 60-64, **J 65+ (inferred)**,
+  K 65-69, L 70-74, M 75+ (reported). J is an age band, not a missing code.
+- `OWNER_RENTER_STATUS`: 9 reported owner, 7-8 likely owner, **4-6 unknown**,
+  1-3 likely renter, 0 reported renter. `MARITAL_STATUS`: 0 reported single,
+  1 inferred single, 2-4 modeled single, 5-6 modeled married, 7-8 inferred
+  married, 9 reported married.
+- `WEALTH_FINDER_SCORE` (0-9999), `FIND_DIV_1000` (income, 5-500),
+  `PPI_DIV_1000` and `ESTMTD_HOME_VAL_DIV_1000` (5-9999) are in **$
+  thousands**, top-coded. Home value is chosen per `LOCATIONID` and copied to
+  every family there.
+- `HOUSEHOLDSTATUS`: F fulfillment, S current but not fulfilled, I inactive,
+  M moved out. The files hold only F and S, so all records are current.
+  `DOWNGRADE_REASON_CODE` non-blank = suppressed (not mailable).
+- `LOCATION_TYPE`: S single-family, M multi-family, T trailer, N nursing
+  home, R retirement home, U undefined. `ADDRESSTYPE`: S house number and
+  street, P PO box, R route and box, D route only, F street only, G general
+  delivery.
+- `RECENCY_DATE`: last confirmation at this address (YYYYMM).
+  `LENGTH_OF_RESIDENCE`: years at the current address, which can flag recent
+  movers.
 
 ## Licensing
 

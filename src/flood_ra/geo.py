@@ -54,11 +54,12 @@ def define_macros(con: duckdb.DuckDBPyConnection) -> None:
         ELSE CASE upper(trim(s)) {postal} END END""")
     con.sql(r"""CREATE OR REPLACE MACRO norm_county(c) AS CASE
         WHEN regexp_full_match(trim(c), '[0-9]{1,5}') THEN right('000' || trim(c), 3) END""")
-    con.sql(r"""CREATE OR REPLACE MACRO norm_tract(t) AS CASE
+    # tract 000000 means unknown (Data Axle data dictionary)
+    con.sql(r"""CREATE OR REPLACE MACRO norm_tract(t) AS NULLIF(CASE
         WHEN regexp_full_match(trim(t), '[0-9]{1,4}\.[0-9]{1,2}')
             THEN right('0000' || split_part(trim(t), '.', 1), 4)
                  || rpad(split_part(trim(t), '.', 2), 2, '0')
-        WHEN regexp_full_match(trim(t), '[0-9]{1,6}') THEN right('000000' || trim(t), 6) END""")
+        WHEN regexp_full_match(trim(t), '[0-9]{1,6}') THEN right('000000' || trim(t), 6) END, '000000')""")
     con.sql(r"""CREATE OR REPLACE MACRO norm_bg(b) AS CASE
         WHEN regexp_full_match(trim(b), '0*[0-9]') THEN right(trim(b), 1) END""")
     # coordinates come as "035.123456", "35.12345678" or "+35.12"; 0 means missing
