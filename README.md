@@ -58,8 +58,9 @@ When a pull changes `requirements.txt`, run `pip install -r requirements.txt` fi
 | 05 | `05_describe_sample.py` | none | `sample_report.md` |
 
 - **01** reads each yearly `.csv.gz` in place, keeps households whose address
-  state is a study state (`study_states` in settings.yaml), drops the name
-  columns, and keeps every column as text so codes keep leading zeros. It
+  state is a study state (`study_states` in settings.yaml), keeps all
+  columns, names included (`drop_columns` can drop some), as text so codes
+  keep leading zeros. It
   converts several files at once, checks each with `gzip -t` (a truncated
   file fails instead of becoming a partial year), and counts rejected rows by
   error type. Each converted file records the settings it was made with;
@@ -149,4 +150,5 @@ Raw inputs are read-only: the pipeline never writes into `infousa_raw` or
 ## Licensing
 
 infoUSA / Data Axle data is licensed. Commit only code and aggregate logs
-(schemas, counts, match rates), never record-level rows.
+(schemas, counts, match rates), never record-level rows. The converted and
+merged files keep names and addresses; they stay on the server.

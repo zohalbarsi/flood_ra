@@ -1,8 +1,9 @@
 """Step 1: convert each yearly infoUSA Consumer file to Parquet, once.
 
 Reads the raw .csv.gz in place (never modified), keeps households whose
-address state is a study state, drops the columns listed in settings.yaml
-(names), and writes derived/infousa_parquet/infousa_<year>[_<version>].parquet.
+address state is a study state, drops any columns listed in drop_columns in
+settings.yaml (none by default), and writes
+derived/infousa_parquet/infousa_<year>[_<version>].parquet.
 Every column stays text so codes keep their leading zeros. Several files run
 at once (parallel_files in paths.yaml). Each file records the settings it was
 converted with (study states, dropped columns, delimiter, encoding); re-runs

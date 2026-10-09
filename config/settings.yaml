@@ -31,8 +31,10 @@ prefer_version:
 # Step 01 converts a year again whenever this list or the settings above change.
 study_states: [NC, SC]
 
-# Dropped during conversion: not needed for the merge (shell-style patterns).
-drop_columns: ["First_Name_*", "Middle_Name_*", "Last_Name_*", "Suffix_Code_*", "title_code"]
+# Columns to drop during conversion (shell-style patterns, e.g. "First_Name_*").
+# Empty: every column is kept, names included. The converted and merged files
+# stay on the server; the logs only ever hold counts and code patterns.
+drop_columns: []
 
 # Hurricane Florence flood exposure files, relative to flood_exposure.
 flood_files:
