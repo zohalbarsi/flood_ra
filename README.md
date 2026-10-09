@@ -58,11 +58,12 @@ When a pull changes `requirements.txt`, run `pip install -r requirements.txt` fi
 | 05 | `05_describe_sample.py` | none | `sample_report.md` |
 
 - **01** reads each yearly `.csv.gz` in place, keeps households whose address
-  state is a study state (default: the states in the flood data), drops the
-  name columns, and keeps every column as text so codes keep leading zeros.
-  It converts several files at once, checks each with `gzip -t` (a truncated
-  file fails instead of becoming a partial year), skips files already done,
-  and counts rejected rows by error type.
+  state is a study state (`study_states` in settings.yaml), drops the name
+  columns, and keeps every column as text so codes keep leading zeros. It
+  converts several files at once, checks each with `gzip -t` (a truncated
+  file fails instead of becoming a partial year), and counts rejected rows by
+  error type. Each converted file records the settings it was made with;
+  re-runs skip files whose settings still match and redo the rest.
 - **02** builds zero-padded GEOIDs for each flood file and prefixes the flood
   measures by level (`tract_pct_flooded_gfd`, `bg_pct_flooded_gfd`, ...).
   It also turns the block `.geojson` into outlines in WGS84
@@ -103,8 +104,10 @@ Raw inputs are read-only: the pipeline never writes into `infousa_raw` or
 
 ## Decisions so far (config/settings.yaml)
 
-- **Study area: North Carolina.** The flood data cover 34 NC counties only,
-  so step 01 keeps NC households (34-38% of them live in those counties).
+- **Study area: North and South Carolina.** The flood data cover 34 NC
+  counties only (34-38% of NC households live in them). SC households are
+  kept as a comparison group and so that families moving between NC and SC
+  are followed; they have no flood measures (`in_flood_counties` is false).
 - **Merge key: `GE_ALS_*_2010` columns.** They match 100% of tracts and block
   groups in every year. The `GE_CENSUS_*` columns match ~43% in 2007-2017
   (another tract vintage) and are empty from 2018 on.
@@ -131,8 +134,9 @@ Raw inputs are read-only: the pipeline never writes into `infousa_raw` or
   do not, more than out-of-state moves explain. Only 3-5% of the missing
   families' first person reappears under another FAMILYID, so most of the
   loss is records leaving the file, not re-keying: "not found" should not be
-  read as "moved away". Keeping only NC households also drops families once
-  they leave the state.
+  read as "moved away". (These figures are from the NC-only run; with SC
+  added, moves between NC and SC are followed. Moves to other states still
+  look like attrition.)
 - **Baseline year.** Florence hit in September 2018; whether the 2018 file
   shows pre- or post-storm addresses depends on when it was compiled.
 - **Geocode precision for the block merge.** A household's block is only as

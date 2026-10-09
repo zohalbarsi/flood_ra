@@ -4,8 +4,10 @@ Reads the raw .csv.gz in place (never modified), keeps households whose
 address state is a study state, drops the columns listed in settings.yaml
 (names), and writes derived/infousa_parquet/infousa_<year>[_<version>].parquet.
 Every column stays text so codes keep their leading zeros. Several files run
-at once (parallel_files in paths.yaml); finished files are skipped on re-runs
-(--overwrite redoes them). Rows the CSV reader rejects are counted by error
+at once (parallel_files in paths.yaml). Each file records the settings it was
+converted with (study states, dropped columns, delimiter, encoding); re-runs
+skip files whose settings still match and redo the rest (--overwrite redoes
+all). Rows the CSV reader rejects are counted by error
 type, never stored. Each .gz is also checked with `gzip -t` alongside the
 conversion, because DuckDB silently reads a truncated file up to the cut.
 One line per file goes to output/logs/infousa_conversion.txt.
@@ -13,6 +15,7 @@ One line per file goes to output/logs/infousa_conversion.txt.
 from __future__ import annotations
 
 import fnmatch
+import json
 import shutil
 import subprocess
 import sys
@@ -21,6 +24,8 @@ from collections import Counter
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime
 from pathlib import Path
+
+import duckdb  # noqa: E402
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 from flood_ra import db, geo, paths, settings  # noqa: E402
@@ -44,11 +49,25 @@ def raw_files() -> list[tuple[int, str, Path]]:
     return out
 
 
+def signature(states: list[str]) -> str:
+    """The settings a converted file depends on; stored in its Parquet metadata."""
+    return json.dumps({"states": sorted(states), "drop_columns": settings.DROP_COLUMNS,
+                       "delim": settings.INFOUSA_DELIM, "encoding": settings.INFOUSA_ENCODING},
+                      sort_keys=True)
+
+
+def converted_with(path: Path) -> str | None:
+    """The settings signature a converted file was written with (None if absent)."""
+    rows = duckdb.sql("SELECT decode(key), decode(value) "
+                      f"FROM parquet_kv_metadata('{path.as_posix()}')").fetchall()
+    return dict(rows).get("flood_ra_settings")
+
+
 def quote(col: str) -> str:
     return '"' + col.replace('"', '""') + '"'
 
 
-def convert(year: int, version: str, f: Path, states: list[str]) -> str:
+def convert(year: int, version: str, f: Path, states: list[str], sig: str) -> str:
     t0 = time.time()
     out = paths.infousa_parquet(year, version)
     tmp = out.with_suffix(".parquet.tmp")
@@ -57,7 +76,7 @@ def convert(year: int, version: str, f: Path, states: list[str]) -> str:
         check = subprocess.Popen(["gzip", "-t", str(f)], stdout=subprocess.DEVNULL,
                                  stderr=subprocess.PIPE, text=True)
     try:
-        line = _convert(year, f, states, tmp)
+        line = _convert(year, f, states, sig, tmp)
         if check is not None:
             err = check.communicate()[1].strip()
             if check.returncode == 1:  # 2 = warning only, e.g. trailing zeros
@@ -72,7 +91,7 @@ def convert(year: int, version: str, f: Path, states: list[str]) -> str:
     return f"{year} {version} ({f.name}): {line}; {(time.time() - t0) / 60:.1f} min"
 
 
-def _convert(year: int, f: Path, states: list[str], tmp: Path) -> str:
+def _convert(year: int, f: Path, states: list[str], sig: str, tmp: Path) -> str:
     con = db.connect()
     opts = (f"all_varchar=true, header=true, delim='{settings.INFOUSA_DELIM}', "
             f"encoding='{settings.INFOUSA_ENCODING}'")
@@ -85,7 +104,8 @@ def _convert(year: int, f: Path, states: list[str], tmp: Path) -> str:
             SELECT {year} AS year, {', '.join(map(quote, keep))}, '{f.name}' AS source_file
             FROM read_csv('{f.as_posix()}', {opts}, store_rejects=true, rejects_limit={REJECTS_LIMIT})
             WHERE upper(trim("STATE")) IN ({in_states})
-        ) TO '{tmp.as_posix()}' (FORMAT parquet, COMPRESSION zstd)
+        ) TO '{tmp.as_posix()}' (FORMAT parquet, COMPRESSION zstd,
+                                 KV_METADATA {{flood_ra_settings: '{sig.replace("'", "''")}'}})
     """)
     # error types and counts only: the rejects table also holds the raw lines
     rejects = con.sql("SELECT error_type, count(*) FROM reject_errors GROUP BY 1 ORDER BY 1").fetchall()
@@ -105,15 +125,24 @@ def main(overwrite: bool = False) -> None:
     files = raw_files()
     if not files:
         sys.exit(f"no files match {settings.INFOUSA_GLOB} in {paths.INFOUSA_RAW}")
-    todo = [x for x in files if overwrite or not paths.infousa_parquet(x[0], x[1]).exists()]
+    sig = signature(states)
+    status = {}
+    for y, v, f in files:
+        out = paths.infousa_parquet(y, v)
+        if overwrite or not out.exists():
+            status[(y, v, f)] = "convert"
+        elif converted_with(out) != sig:
+            status[(y, v, f)] = "settings changed, convert again"
+        else:
+            status[(y, v, f)] = "done, skip"
+    todo = [x for x in files if status[x] != "done, skip"]
     print(f"study states: {', '.join(states)}")
     for x in files:
-        print(f"  {x[0]} {x[1]:5} {x[2].relative_to(paths.INFOUSA_RAW)}"
-              f"  [{'convert' if x in todo else 'done, skip'}]")
+        print(f"  {x[0]} {x[1]:5} {x[2].relative_to(paths.INFOUSA_RAW)}  [{status[x]}]")
     print(f"converting {len(todo)} files, {paths.PARALLEL} at a time", flush=True)
     failed = 0
     with ThreadPoolExecutor(max_workers=paths.PARALLEL) as pool:
-        jobs = {pool.submit(convert, y, v, f, states): f for y, v, f in todo}
+        jobs = {pool.submit(convert, y, v, f, states, sig): f for y, v, f in todo}
         for job in as_completed(jobs):
             try:
                 line = job.result()

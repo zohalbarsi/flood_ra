@@ -24,8 +24,12 @@ prefer_version:
   2024: main
 
 # Keep households whose address state is one of these postal codes.
-# Empty = the states that appear in the flood exposure tract file.
-study_states: []
+# Empty = the states that appear in the flood exposure tract file (NC only).
+# SC is kept too: as a comparison group, and so families moving between NC and
+# SC are followed instead of disappearing. The flood files cover NC only, so SC
+# households have no flood measures (in_flood_counties is false).
+# Step 01 converts a year again whenever this list or the settings above change.
+study_states: [NC, SC]
 
 # Dropped during conversion: not needed for the merge (shell-style patterns).
 drop_columns: ["First_Name_*", "Middle_Name_*", "Last_Name_*", "Suffix_Code_*", "title_code"]
