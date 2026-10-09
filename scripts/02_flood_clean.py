@@ -67,7 +67,7 @@ def main() -> None:
             f'count(*) FILTER (WHERE TRY_CAST("{c}" AS DOUBLE) IS NULL)' for c in shares) + " FROM src").fetchone()
         log += [f"## {level}: `{f.name}`", "",
                 f"- rows {rows:,}; unique GEOIDs {ids:,}"
-                + ("" if rows == ids else " **(duplicates: the merge would repeat households)**"),
+                + ("" if rows == ids else " **(duplicates: the merge would repeat records)**"),
                 f"- malformed GEOIDs {bad:,}; GEOIDs that differ from the file's GEOID{sfx} column {differ:,}",
                 "- areas by state FIPS: " + ", ".join(f"{s}: {n:,}" for s, n in states),
                 "- missing flood shares: " + ", ".join(f"{c} {n:,}" for c, n in zip(shares, missing)),

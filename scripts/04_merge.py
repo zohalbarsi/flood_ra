@@ -1,4 +1,7 @@
-"""Step 4: merge infoUSA households with flood exposure, one file per year.
+"""Step 4: merge infoUSA family records with flood exposure, one file per year.
+
+Each row is one family record (FAMILYID): primary families and subfamilies
+alike; PRIMARY_FAMILY_IND = 1 keeps one row per household (LOCATIONID).
 
 Builds 11-digit tract and 12-digit block-group GEOIDs from the infoUSA census
 columns (geo_family in settings.yaml picks the column set) and left-joins the
@@ -67,6 +70,8 @@ def main() -> None:
         block = con.sql("SELECT count(block_geoid) FILTER (WHERE in_flood_counties) / "
                         "nullif(count(*) FILTER (WHERE in_flood_counties), 0) "
                         f"FROM read_parquet('{out.as_posix()}')").fetchone()[0]
+        primary = con.sql(f"SELECT count(*) FILTER (WHERE trim(PRIMARY_FAMILY_IND) = '1') "
+                          f"FROM {src}").fetchone()[0]
         version = f.stem.split("_", 2)[2] if f.stem.count("_") > 1 else "main"
         for family in geo.FAMILIES:
             r = con.sql(f"""
@@ -79,21 +84,24 @@ def main() -> None:
                 LEFT JOIN flood_bg fb ON h.b = fb.bg_geoid
             """).fetchone()
             match.append([year, version, family + (" (used)" if family == fam else ""), f"{r[0]:,}",
-                          pct(r[1]), pct(r[2]), pct(r[3]), pct(r[4]), pct(block) if family == fam else ""])
+                          f"{primary:,}", pct(r[1]), pct(r[2]), pct(r[3]), pct(r[4]), pct(block) if family == fam else ""])
         used = next(m for m in match[-len(geo.FAMILIES):] if m[2].endswith("(used)"))
-        print(f"{year}: merged -> {out.name}  (in flood counties {used[5]}, "
-              f"tract match {used[6]}, BG match {used[7]}, block found {used[8]})", flush=True)
+        print(f"{year}: merged -> {out.name}  (in flood counties {used[6]}, "
+              f"tract match {used[7]}, BG match {used[8]}, block found {used[9]})", flush=True)
 
     REPORT.write_text("\n".join([
         "# Merge report (counts and shares only)", "",
         f"Merge keys built from the **{fam}** columns (geo_family in config/settings.yaml). "
         f"The flood tract file covers {n_counties} counties.", "",
-        "households: study-state households in the converted file (version: which file). "
-        "valid code: a well-formed tract code. in flood counties: the county appears in the "
-        "flood data. tract / BG match: share of the in-county households whose tract / block "
-        "group is in the flood data. block found: share of the in-county households placed in a "
-        "block by step 03 (details in block_assignment.md).", "",
-        *table(pd.DataFrame(match, columns=["year", "version", "columns", "households", "valid code",
+        "family records: every family record in the study states (version: which file), "
+        "primary families and subfamilies alike; primary families: those with "
+        "PRIMARY_FAMILY_IND = 1, one per household. Shares are of all family records. valid code: "
+        "a well-formed tract code. in flood counties: the county appears in the flood data. "
+        "tract / BG match: share of the in-county records whose tract / block group is in the "
+        "flood data. block found: share of the in-county records placed in a block by step 03 "
+        "(details in block_assignment.md).", "",
+        *table(pd.DataFrame(match, columns=["year", "version", "columns", "family records",
+                                            "primary families", "valid code",
                                             "in flood counties", "tract match", "BG match", "block found"])),
     ]))
     print(f"wrote {REPORT}")

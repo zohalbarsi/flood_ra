@@ -1,6 +1,6 @@
 """Step 1: convert each yearly infoUSA Consumer file to Parquet, once.
 
-Reads the raw .csv.gz in place (never modified), keeps households whose
+Reads the raw .csv.gz in place (never modified), keeps family records whose
 address state is a study state, drops any columns listed in drop_columns in
 settings.yaml (none by default), and writes
 derived/infousa_parquet/infousa_<year>[_<version>].parquet.
@@ -116,7 +116,7 @@ def _convert(year: int, f: Path, states: list[str], sig: str, tmp: Path) -> str:
     rej = "; ".join(f"{t} {n:,}" for t, n in rejects) or "none"
     if sum(n for _, n in rejects) >= REJECTS_LIMIT:
         rej += f" (capped at {REJECTS_LIMIT:,})"
-    return (f"{kept:,} households kept ({', '.join(f'{s} {n:,}' for s, n in by_state)}); "
+    return (f"{kept:,} family records kept ({', '.join(f'{s} {n:,}' for s, n in by_state)}); "
             f"{len(keep)} of {len(cols)} columns; rejected rows: {rej}")
 
 

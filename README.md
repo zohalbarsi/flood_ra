@@ -57,7 +57,7 @@ When a pull changes `requirements.txt`, run `pip install -r requirements.txt` fi
 | 04 | `04_merge.py` | `merged/infousa_flood_<year>.parquet` | `merge_report.md` |
 | 05 | `05_describe_sample.py` | none | `sample_report.md` |
 
-- **01** reads each yearly `.csv.gz` in place, keeps households whose address
+- **01** reads each yearly `.csv.gz` in place, keeps family records whose address
   state is a study state (`study_states` in settings.yaml), keeps all
   columns, names included (`drop_columns` can drop some), as text so codes
   keep leading zeros. It
@@ -69,8 +69,8 @@ When a pull changes `requirements.txt`, run `pip install -r requirements.txt` fi
   measures by level (`tract_pct_flooded_gfd`, `bg_pct_flooded_gfd`, ...).
   It also turns the block `.geojson` into outlines in WGS84
   longitude/latitude, whatever coordinate system the file uses.
-- **03** places each household in a 2010 census block: infoUSA has no block
-  code, so it finds the block outline containing the household's
+- **03** places each family record in a 2010 census block: infoUSA has no
+  block code, so it finds the block outline containing the record's
   coordinates (point in polygon, once per distinct coordinate across all
   years). Its report checks the blocks against the households' tract and
   block-group codes, by geocode level.
@@ -79,7 +79,7 @@ When a pull changes `requirements.txt`, run `pip install -r requirements.txt` fi
   `block_geoid`, numeric `latitude`/`longitude` and `in_flood_counties`
   (outside those counties the flood measures are missing, not zero). Its
   report gives match rates under both census column sets.
-- **05** describes the household records to guide sample restrictions:
+- **05** describes the family records to guide sample restrictions:
   version comparison, families per address, year-to-year continuity,
   record-status flags, geocode precision, record recency and code formats.
 
@@ -105,8 +105,12 @@ Raw inputs are read-only: the pipeline never writes into `infousa_raw` or
 
 ## Decisions so far (config/settings.yaml)
 
+- **Unit: family records.** Every row of the converted and merged files is
+  one family record (one `FAMILYID` in one year): primary families and
+  subfamilies alike. `PRIMARY_FAMILY_IND = 1` keeps one row per household
+  (`LOCATIONID`); no household filter is applied yet.
 - **Study area: North and South Carolina.** The flood data cover 34 NC
-  counties only (34-38% of NC households live in them). SC households are
+  counties only (34-38% of NC family records are in them). SC records are
   kept as a comparison group and so that families moving between NC and SC
   are followed; they have no flood measures (`in_flood_counties` is false).
 - **Merge key: `GE_ALS_*_2010` columns**, the Census 2010 geography in the
@@ -115,7 +119,7 @@ Raw inputs are read-only: the pipeline never writes into `infousa_raw` or
   2007-2017) and are empty from 2018 on. Tract `000000` means unknown and is
   treated as missing.
 - **Block level: built** from household coordinates (no block code in
-  infoUSA). 99.7-99.9% of households in the flood counties fall in a block.
+  infoUSA). 99.7-99.9% of family records in the flood counties fall in a block.
   For geocode level `P` the block lies in the household's census tract
   99-100% of the time.
 - **2023: `alt/` version**: the same families as main, identical on every

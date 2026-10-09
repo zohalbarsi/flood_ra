@@ -1,4 +1,4 @@
-"""Step 3: place each household in a 2010 census block.
+"""Step 3: place each family record in a 2010 census block, by its coordinates.
 
 infoUSA has no block code, so this step finds the flood file's block outline
 that contains each household's coordinates (GE_LATITUDE_2010 /
@@ -103,11 +103,12 @@ def main() -> None:
         f"{len(blocks):,} block outlines; {len(points):,} distinct household coordinates in their "
         f"bounding box (all years); {len(lookup):,} fall in a block, {boundary:,} of them on a line "
         f"between blocks (given the lower GEOID). {minutes:.1f} minutes.", "",
-        f"Households whose county ({fam} codes) is covered by the flood data. coordinates: "
+        f"Family records (primary families and subfamilies) whose county ({fam} codes) is "
+        "covered by the flood data. coordinates: "
         "usable latitude and longitude. in a block: the coordinates fall in a block outline. "
         "same tract / same BG: the block lies in the household's census tract / block group "
         "(share of those in a block); level P / other levels split that by GE_CENSUS_LEVEL_2010.", "",
-        *table(pd.DataFrame(rows, columns=["year", "households", "coordinates", "in a block", "same tract",
+        *table(pd.DataFrame(rows, columns=["year", "family records", "coordinates", "in a block", "same tract",
                                            "same BG", "same tract, level P", "same tract, other levels"])),
     ]))
     print(f"wrote {REPORT} ({minutes:.1f} min)")
