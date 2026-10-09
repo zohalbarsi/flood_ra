@@ -10,9 +10,7 @@ infousa_delim: ","
 # (utf-8 would reject such rows; names are dropped anyway).
 infousa_encoding: latin-1
 
-# Years with two versions: which one the merge uses ("main" = top folder,
-# otherwise the subfolder name). Both versions are converted; sample_report.md
-# compares them household by household.
+# Years with two versions: which one the merge uses 
 #   2023: alt. Same NC families as main and identical on every shared column,
 #         plus title, age and gender, which main lacks.
 #   2024: main. Both versions have the same 6,299,994 NC families, but alt/ has
@@ -24,17 +22,7 @@ prefer_version:
   2024: main
 
 # Keep households whose address state is one of these postal codes.
-# Empty = the states that appear in the flood exposure tract file (NC only).
-# SC is kept too: as a comparison group, and so families moving between NC and
-# SC are followed instead of disappearing. The flood files cover NC only, so SC
-# households have no flood measures (in_flood_counties is false).
-# Step 01 converts a year again whenever this list or the settings above change.
 study_states: [NC, SC]
-
-# Columns to drop during conversion (shell-style patterns, e.g. "First_Name_*").
-# Empty: every column is kept, names included. The converted and merged files
-# stay on the server; the logs only ever hold counts and code patterns.
-drop_columns: []
 
 # Hurricane Florence flood exposure files, relative to flood_exposure.
 flood_files:
