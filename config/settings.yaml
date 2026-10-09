@@ -7,7 +7,7 @@
 infousa_glob: "**/US_Consumer_5_File_*.csv.gz"
 infousa_delim: ","
 # latin-1 decodes any byte, so no household is dropped over an odd character
-# (utf-8 would reject such rows; names are dropped anyway).
+# (utf-8 would reject such rows).
 infousa_encoding: latin-1
 
 # Years with two versions: which one the merge uses 
