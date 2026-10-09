@@ -8,12 +8,5 @@ infousa_raw: "/home/z/zebarsi/Desktop/project/InfoUSA/rawdata"
 flood_exposure: "/home/z/zebarsi/Desktop/RA/flood_exposure"
 
 # Where the pipeline writes its Parquet and merged files (roughly 20-40 GB).
-# Check your quota (`quota -s` or `df -h ~`) and point this at project or
-# scratch space if home is small.
 derived: "/home/z/zebarsi/Desktop/RA/flood_ra_derived"
 
-# Optional: how hard to work the shared server. Files converted at once,
-# and DuckDB threads and memory per file.
-# parallel_files: 4
-# duckdb_threads: 2
-# duckdb_memory: "4GB"
