@@ -2,7 +2,8 @@
 
 Writes output/logs/sample_report.md (counts and shares only, safe to commit)
 to help choose sample restrictions: whether the two versions of a year hold
-the same records (and which columns differ), families per address, whether
+the same records (and which columns differ), families per address (by
+dwelling type), adults listed in more than one family record, whether
 FAMILYID follows families from one year to the next, the record-status
 flags, geocode precision, how recently records were verified, and the
 formats of key columns.
@@ -94,6 +95,63 @@ def families(con, files: dict[int, Path]) -> pd.DataFrame:
                                        "records per location"])
 
 
+def dwelling_types(con, files: dict[int, Path]) -> pd.DataFrame:
+    """Families per address and non-primary share in single-family (S) vs
+    multi-family (M) dwellings, and at addresses with an apartment number."""
+    rows = []
+    for year, f in files.items():
+        r = con.sql(f"""
+            SELECT count(*) FILTER (WHERE lt = 'S') / nullif(count(DISTINCT loc) FILTER (WHERE lt = 'S'), 0),
+                   count(*) FILTER (WHERE lt = 'M') / nullif(count(DISTINCT loc) FILTER (WHERE lt = 'M'), 0),
+                   count(*) FILTER (WHERE unit) / nullif(count(DISTINCT loc) FILTER (WHERE unit), 0),
+                   avg(CASE WHEN lt = 'S' THEN (NOT prim)::INT END),
+                   avg(CASE WHEN lt = 'M' THEN (NOT prim)::INT END),
+                   avg(CASE WHEN unit THEN (NOT prim)::INT END)
+            FROM (SELECT trim(LOCATION_TYPE) AS lt, LOCATIONID AS loc,
+                         coalesce(trim(PRIMARY_FAMILY_IND) = '1', false) AS prim,
+                         coalesce(trim(UNIT_NUM), '') != '' AS unit
+                  FROM read_parquet('{f.as_posix()}') WHERE LOCATIONID IS NOT NULL)""").fetchone()
+        rows.append([year] + [f"{x:.2f}" if x is not None else "" for x in r[:3]] + [pct(x) for x in r[3:]])
+    return pd.DataFrame(rows, columns=["year", "per address: S", "per address: M", "per address: apt no.",
+                                       "non-primary: S", "non-primary: M", "non-primary: apt no."])
+
+
+def people(con, files: dict[int, Path]) -> pd.DataFrame:
+    """Adults (IndividualID_1-5) per year and state: how many there are, how
+    many sit in primary families, how many are listed in 2+ family records,
+    and how many adults of a non-primary family are also listed in the
+    primary family at the same address."""
+    rows = []
+    for year, f in files.items():
+        src = f"read_parquet('{f.as_posix()}')"
+        fams = dict((st, (n, p)) for st, n, p in con.sql(
+            f"SELECT upper(trim(STATE)), count(*), count(*) FILTER (WHERE trim(PRIMARY_FAMILY_IND) = '1') "
+            f"FROM {src} GROUP BY 1").fetchall())
+        slots = " UNION ALL ".join(
+            f"SELECT FAMILYID AS f, LOCATIONID AS loc, upper(trim(STATE)) AS st, "
+            f"coalesce(trim(PRIMARY_FAMILY_IND) = '1', false) AS prim, "
+            f"nullif(trim(IndividualID_{k}), '') AS i FROM {src}" for k in range(1, 6))
+        con.sql(f"CREATE OR REPLACE TEMP TABLE p AS SELECT * FROM ({slots}) WHERE i IS NOT NULL")
+        for st, adults, prim_adults, multi, multi_same, nonprim, dup in con.sql("""
+                WITH per AS (SELECT st, i, count(DISTINCT f) AS fams, count(DISTINCT loc) AS locs,
+                                    bool_or(prim) AS in_prim, bool_or(NOT prim) AS in_nonprim
+                             FROM p GROUP BY st, i),
+                     dup AS (SELECT DISTINCT a.st, a.i FROM p a JOIN p b
+                             ON a.i = b.i AND a.loc = b.loc AND a.f != b.f AND NOT a.prim AND b.prim)
+                SELECT per.st, count(*), count(*) FILTER (WHERE in_prim), count(*) FILTER (WHERE fams > 1),
+                       count(*) FILTER (WHERE fams > 1 AND locs = 1), count(*) FILTER (WHERE in_nonprim),
+                       (SELECT count(*) FROM dup WHERE dup.st = per.st)
+                FROM per GROUP BY per.st ORDER BY per.st""").fetchall():
+            n, p = fams.get(st, (0, 0))
+            rows.append([year, st, f"{n:,}", f"{p:,}", f"{adults:,}", f"{prim_adults:,}",
+                         f"{prim_adults / p:.2f}" if p else "", pct(multi / adults if adults else None),
+                         pct(multi_same / multi if multi else None), pct(dup / nonprim if nonprim else None)])
+    return pd.DataFrame(rows, columns=["year", "state", "families", "primary families", "adults",
+                                       "adults in primary families", "adults per primary family",
+                                       "adults in 2+ families", "of those: one address",
+                                       "non-primary adults also in the address's primary family"])
+
+
 def continuity(con, files: dict[int, Path]) -> pd.DataFrame:
     """Primary families (PRIMARY_FAMILY_IND = 1) in one year: share found the
     next year under the same FAMILYID, at the same or a different LOCATIONID;
@@ -170,6 +228,20 @@ def main() -> None:
     out += ["## Records, families and addresses", "",
             "records per location > 1 means several families share an address (LOCATIONID).", "",
             *table(families(con, files))]
+    print("dwelling types", flush=True)
+    out += ["### Families per address by dwelling type", "",
+            "S = single-family, M = multi-family dwelling (LOCATION_TYPE); apt no. = addresses with an "
+            "apartment number (UNIT_NUM). If multi-family addresses carry many more families than "
+            "single-family ones, LOCATIONID marks buildings; if similar, it marks dwellings.", "",
+            *table(dwelling_types(con, files))]
+    print("people in more than one family", flush=True)
+    out += ["## Adults and duplicate listings", "",
+            "Adults are the IndividualID_1-5 slots (children are not listed). adults in 2+ families: "
+            "listed in more than one family record that year; of those, the share whose records all "
+            "share one address. Last column: adults of non-primary families who are also listed in the "
+            "primary family at the same address (the same person counted twice). Compare adults with "
+            "the Census adult population (18+) of each state.", "",
+            *table(people(con, files))]
     print("year-to-year continuity", flush=True)
     out += ["## Families followed to the next year", "",
             "Base: primary families (PRIMARY_FAMILY_IND = 1). found next year: same FAMILYID in the "
