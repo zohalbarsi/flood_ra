@@ -29,3 +29,7 @@ Thumbs.db
 # R session files
 .Rhistory
 .RData
+
+# Aggregate tables and public Census benchmarks are safe to commit
+!output/tables/*.csv
+!benchmarks/*.csv

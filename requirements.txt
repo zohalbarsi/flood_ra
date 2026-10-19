@@ -4,3 +4,4 @@ pyarrow>=14
 pyyaml>=6
 geopandas>=1.0
 pyogrio>=0.7
+matplotlib>=3.7

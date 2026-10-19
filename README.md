@@ -56,6 +56,7 @@ When a pull changes `requirements.txt`, run `pip install -r requirements.txt` fi
 | 03 | `03_assign_blocks.py` | `geo/point_blocks.parquet` | `block_assignment.md` |
 | 04 | `04_merge.py` | `merged/infousa_flood_<year>.parquet` | `merge_report.md` |
 | 05 | `05_describe_sample.py` | none | `sample_report.md` |
+| 06 | `06_demographics.py` | `demographics/` (tract shares) | `demographics.md`, `output/figures/`, `output/tables/` |
 
 - **01** reads each yearly `.csv.gz` in place, keeps family records whose address
   state is a study state (`study_states` in settings.yaml), keeps all
@@ -99,6 +100,16 @@ When a pull changes `requirements.txt`, run `pip install -r requirements.txt` fi
 - **05** describes the family records to guide sample restrictions:
   version comparison, families per address, year-to-year continuity,
   record-status flags, geocode precision, record recency and code formats.
+
+- **06** compares infoUSA households (primary families) in NC and SC, year
+  by year, with Census ACS state estimates. It covers owners vs renters,
+  children, income, wealth, home value and the race/ethnicity of the first
+  person, and draws tract maps of race and homeownership next to ACS
+  2015-2019. It downloads the Census tables once and keeps them in
+  `benchmarks/` (public data). Ethnicity codes are grouped with
+  `config/ethnicity_groups.yaml` if it exists; otherwise the groups are
+  inferred from county patterns and must be checked against the Data Axle
+  Ethnicity-Cultural Coding Datacard.
 
 Logs are written to `output/logs/`. Step 01 is the slow one (19 years plus 2
 alternate versions, about 275 GB compressed): expect several hours. Run it in
