@@ -1,0 +1,151 @@
+# Ethnicity_Code_1 (first person) -> race/ethnicity group for step 06.
+# Data Axle's codes are mostly ISO country codes of the name's origin, plus
+# some coded groups. Built from the code letters and checked against how each
+# code's county shares track ACS householder race (output/logs/demographics.md).
+# NOT from the Data Axle Ethnicity-Cultural Coding Datacard: replace with the
+# datacard's definitions when available. Codes not listed count as "other";
+# 00 / blank = missing.
+#
+# Coded (non-country) groups, by evidence:
+#   E5 English, S3 Scottish, W4 Welsh, J4 Jewish (by letter and r_white > 0)
+#   B5, LR, Q6-Q9: Black. LR (r_black 0.77) disappears in 2018, when Q6-Q8
+#     appear and Q9 triples; together they replace LR almost one for one.
+#   H5 Hispanic (r_hispanic 0.95); A7 and K5 Asian (r_asian 0.83; K5 Korean?)
+#   N3, P4 and the rare C3, H3, A8, K8, Z8, B3, T5, X5, O8, C5, T4, A4, ZZ: unknown -> other
+#   Middle East / North Africa codes go to white, as in the ACS race question.
+
+E5: white
+S3: white
+W4: white
+J4: white
+IE: white
+DE: white
+FR: white
+IT: white
+NL: white
+SE: white
+PL: white
+DK: white
+HU: white
+RU: white
+AT: white
+NO: white
+PT: white
+GR: white
+CZ: white
+SK: white
+UA: white
+FI: white
+RO: white
+CS: white
+BE: white
+LT: white
+HR: white
+BY: white
+SI: white
+CH: white
+BG: white
+LV: white
+EE: white
+AL: white
+LU: white
+GE: white
+BA: white
+MD: white
+IS: white
+IM: white
+MT: white
+MK: white
+AU: white
+NZ: white
+AM: white
+AZ: white
+TR: white
+EG: white
+SY: white
+LB: white
+IQ: white
+MA: white
+DZ: white
+TN: white
+LY: white
+SA: white
+KW: white
+QA: white
+YE: white
+
+B5: black
+LR: black
+Q6: black
+Q7: black
+Q8: black
+Q9: black
+NG: black
+ET: black
+KE: black
+GH: black
+SZ: black
+RW: black
+ZW: black
+AO: black
+SN: black
+CI: black
+SL: black
+GM: black
+UG: black
+GW: black
+TD: black
+NE: black
+SD: black
+MW: black
+CD: black
+ZM: black
+ML: black
+CM: black
+CG: black
+TZ: black
+BF: black
+GQ: black
+TG: black
+BJ: black
+CF: black
+SO: black
+DJ: black
+GN: black
+BW: black
+MR: black
+GA: black
+LS: black
+KM: black
+BI: black
+MZ: black
+MG: black
+
+H5: hispanic
+
+IN: asian
+CN: asian
+A7: asian
+VN: asian
+K5: asian
+PH: asian
+JP: asian
+PK: asian
+LA: asian
+TH: asian
+KH: asian
+MM: asian
+LK: asian
+ID: asian
+NP: asian
+MY: asian
+MN: asian
+BD: asian
+BT: asian
+MV: asian
+KZ: asian
+KG: asian
+UZ: asian
+TM: asian
+TJ: asian
+AF: asian

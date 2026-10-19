@@ -223,6 +223,19 @@ Raw inputs are read-only: the pipeline never writes into `infousa_raw` or
 - **Flags:** `HOUSEHOLDSTATUS` is blank in 2007-2010, `VACANT` in 2007-2008,
   `USPSNOSTATS` in 2007-2009; `VACANT = 1` falls from 1.3% to 0.1% in 2015.
 - NC and SC records move in opposite directions in 5 of 18 years.
+- **Ethnicity codes, 2018:** code `LR` (about 6% of households, Black) is
+  replaced by `Q6`-`Q9`. `config/ethnicity_groups.yaml` maps all of them to
+  Black, so the series is smooth across 2018.
+- **Children, 2012 and 2016:** the share of households with children steps up
+  from 10% to 20% (2012) and to 30% (2016). It matches ACS (28-31%) only in
+  2016-2023 and falls again in 2024-2025.
+- **Income and wealth models:** `FIND_DIV_1000` is close to ACS median income
+  up to 2013. It drops in 2014 and is 15-20% below ACS from 2016.
+  `WEALTH_FINDER_SCORE` changes scale in 2010, 2014 and 2025 (median $2.7M,
+  $1.8M, $1.3M, then $5.2M), so it is not comparable in dollars across those
+  breaks. Use it as a within-year rank only.
+- **Home value:** tracks ACS until about 2016, then falls behind: owner
+  median $220k vs ACS $333k in NC 2024.
 
 ## Codebook notes (Data Axle data dictionary)
 
