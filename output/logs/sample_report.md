@@ -86,6 +86,79 @@ records per location > 1 means several families share an address (LOCATIONID).
  2025 11,222,316        11,222,316           6,919,608                 1.62
 ```
 
+### Families per address by dwelling type
+
+S = single-family, M = multi-family dwelling (LOCATION_TYPE); apt no. = addresses with an apartment number (UNIT_NUM). If multi-family addresses carry many more families than single-family ones, LOCATIONID marks buildings; if similar, it marks dwellings.
+
+```
+ year per address: S per address: M per address: apt no. non-primary: S non-primary: M non-primary: apt no.
+ 2007           1.17           1.08                 1.14          14.8%           7.3%                12.8%
+ 2008           1.18           1.08                 1.15          15.3%           7.8%                13.0%
+ 2009           1.21           1.13                 1.19          17.3%          11.4%                16.3%
+ 2010           1.20           1.11                 1.17          16.7%          10.2%                14.7%
+ 2011           1.21           1.12                 1.17          17.7%          10.7%                14.9%
+ 2012           1.24           1.13                 1.19          19.6%          11.8%                16.1%
+ 2013           1.33           1.21                 1.28          25.2%          17.3%                22.3%
+ 2014           1.33           1.21                 1.28          24.8%          17.5%                21.7%
+ 2015           1.32           1.19                 1.25          24.4%          16.3%                20.6%
+ 2016           1.38           1.26                 1.32          27.7%          20.9%                24.4%
+ 2017           1.42           1.29                 1.35          29.7%          22.4%                26.3%
+ 2018           1.45           1.41                 1.50          31.5%          29.2%                33.4%
+ 2019           1.50           1.39                 1.47          33.6%          28.4%                32.2%
+ 2020           1.52           1.38                 1.46          34.3%          27.7%                31.8%
+ 2021           1.52           1.42                 1.50          34.4%          29.7%                33.6%
+ 2022           1.48           1.36                 1.43          32.7%          26.3%                30.2%
+ 2023           1.43           1.32                 1.36          30.1%          24.1%                26.5%
+ 2024           1.49           1.28                 1.34          32.8%          21.8%                25.6%
+ 2025           1.67           1.42                 1.55          40.3%          29.7%                35.4%
+```
+
+## Adults and duplicate listings
+
+Adults are the IndividualID_1-5 slots (children are not listed). adults in 2+ families: listed in more than one family record that year; of those, the share whose records all share one address. Last column: adults of non-primary families who are also listed in the primary family at the same address (the same person counted twice). Compare adults with the Census adult population (18+) of each state.
+
+```
+ year state  families primary families     adults adults in primary families adults per primary family adults in 2+ families of those: one address non-primary adults also in the address's primary family
+ 2007    NC 4,387,393        3,775,263  7,301,954                  6,549,617                      1.73                  0.0%                                                                          0.0%
+ 2007    SC 1,950,808        1,736,485  2,997,029                  2,737,735                      1.58                  0.0%                                                                          0.0%
+ 2008    NC 4,252,381        3,637,047  7,199,548                  6,428,605                      1.77                  0.0%                                                                          0.0%
+ 2008    SC 1,903,872        1,687,212  3,047,939                  2,780,886                      1.65                  0.0%                                                                          0.0%
+ 2009    NC 4,577,802        3,785,298  7,550,860                  6,580,769                      1.74                  0.0%                                                                          0.0%
+ 2009    SC 1,854,391        1,648,722  2,932,840                  2,680,619                      1.63                  0.0%                                                                          0.0%
+ 2010    NC 4,516,391        3,771,336  7,352,795                  6,447,597                      1.71                  0.0%                                                                          0.0%
+ 2010    SC 1,866,116        1,663,413  2,956,056                  2,710,819                      1.63                  0.0%                                                                          0.0%
+ 2011    NC 4,479,268        3,729,062  7,401,150                  6,488,124                      1.74                  0.0%                                                                          0.0%
+ 2011    SC 1,982,026        1,710,088  3,172,445                  2,846,453                      1.66                  0.0%                                                                          0.0%
+ 2012    NC 4,627,818        3,763,390  7,636,829                  6,582,059                      1.75                  0.0%                                                                          0.0%
+ 2012    SC 2,028,981        1,723,167  3,300,421                  2,930,583                      1.70                  0.0%                                                                          0.0%
+ 2013    NC 5,279,508        4,000,670  8,895,389                  7,291,721                      1.82                  0.0%                                                                          0.0%
+ 2013    SC 2,271,319        1,824,279  3,848,912                  3,287,635                      1.80                  0.0%                                                                          0.0%
+ 2014    NC 5,205,927        3,937,660  8,897,641                  7,274,958                      1.85                  0.0%                                                                          0.0%
+ 2014    SC 2,157,861        1,764,586  3,727,648                  3,218,990                      1.82                  0.0%                                                                          0.0%
+ 2015    NC 4,954,311        3,808,026  8,643,785                  7,151,520                      1.88                  0.0%                                                                          0.0%
+ 2015    SC 2,237,619        1,780,444  3,883,084                  3,293,693                      1.85                  0.0%                                                                          0.0%
+ 2016    NC 5,290,248        3,886,947  9,133,367                  7,346,723                      1.89                  0.0%                                                                          0.0%
+ 2016    SC 2,442,816        1,845,788  4,280,248                  3,512,129                      1.90                  0.0%                                                                          0.0%
+ 2017    NC 5,625,111        4,026,312  9,542,554                  7,524,973                      1.87                  0.0%                                                                          0.0%
+ 2017    SC 2,560,069        1,892,238  4,471,030                  3,619,932                      1.91                  0.0%                                                                          0.0%
+ 2018    NC 6,005,534        4,140,738 10,022,744                  7,669,630                      1.85                  0.0%                                                                          0.0%
+ 2018    SC 2,708,967        1,951,397  4,681,236                  3,706,535                      1.90                  0.0%                                                                          0.0%
+ 2019    NC 6,180,010        4,168,617 10,633,110                  8,016,506                      1.92                  0.0%                                                                          0.0%
+ 2019    SC 2,864,478        1,999,947  5,064,002                  3,923,960                      1.96                  0.0%                                                                          0.0%
+ 2020    NC 6,474,156        4,308,142 10,980,939                  8,184,599                      1.90                  0.0%                                                                          0.0%
+ 2020    SC 2,914,236        2,033,779  5,107,877                  3,949,515                      1.94                  0.0%                                                                          0.0%
+ 2021    NC 6,700,820        4,409,523 11,241,172                  8,313,072                      1.89                  0.0%                                                                          0.0%
+ 2021    SC 2,862,045        2,022,474  5,000,340                  3,903,753                      1.93                  0.0%                                                                          0.0%
+ 2022    NC 6,295,228        4,294,086 10,645,107                  8,064,238                      1.88                  0.0%                                                                          0.0%
+ 2022    SC 2,847,778        2,022,720  4,908,669                  3,840,318                      1.90                  0.0%                                                                          0.0%
+ 2023    NC 5,717,475        4,035,079  9,816,518                  7,645,442                      1.89                  0.0%                                                                          0.0%
+ 2023    SC 2,666,582        1,943,310  4,632,639                  3,694,243                      1.90                  0.0%                                                                          0.0%
+ 2024    NC 6,299,994        4,312,416 10,723,680                  8,195,433                      1.90                  0.0%                                                                          0.0%
+ 2024    SC 2,944,592        2,096,749  5,185,371                  4,086,837                      1.95                  0.0%                                                                          0.0%
+ 2025    NC 7,844,644        4,751,488 12,657,203                  8,891,970                      1.87                  0.0%                                                                          0.0%
+ 2025    SC 3,377,672        2,215,109  5,735,656                  4,288,700                      1.94                  0.0%                                                                          0.0%
+```
+
 ## Families followed to the next year
 
 Base: primary families (PRIMARY_FAMILY_IND = 1). found next year: same FAMILYID in the next file (any record). other location: found at a different LOCATIONID (moved within the study states). not found: left the study states, or the record was dropped or re-keyed. of not found, person found: share of the not-found families whose IndividualID_1 is in the next file under another FAMILYID (a re-keyed or re-formed family).
