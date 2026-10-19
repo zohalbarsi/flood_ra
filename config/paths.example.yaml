@@ -3,6 +3,7 @@
 # Read-only raw inputs (the pipeline never writes here).
 infousa_raw: "/home/z/zebarsi/Desktop/project/InfoUSA/rawdata"
 flood_exposure: "/home/z/zebarsi/Desktop/RA/flood_exposure"
+# corelogic_raw: "/path/to/corelogic"   # CoreLogic property data, when used
 
 # Where the pipeline writes its Parquet and merged files (roughly 20-40 GB).
 derived: "/home/z/zebarsi/Desktop/RA/flood_ra_derived"

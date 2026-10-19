@@ -39,6 +39,8 @@ CFG = _load()
 INFOUSA_RAW = Path(CFG["infousa_raw"]).expanduser()
 FLOOD_EXPOSURE = Path(CFG["flood_exposure"]).expanduser()
 DERIVED = Path(CFG["derived"]).expanduser()
+# Optional: CoreLogic property data (dwelling characteristics, values)
+CORELOGIC_RAW = Path(CFG["corelogic_raw"]).expanduser() if CFG.get("corelogic_raw") else None
 
 # Files converted at once, and DuckDB threads / memory per file
 PARALLEL = int(CFG.get("parallel_files", 4))
