@@ -1,4 +1,4 @@
-"""Run the whole pipeline in order: python run_all.py [first_step]"""
+
 import subprocess
 import sys
 from pathlib import Path
