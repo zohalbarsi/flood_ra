@@ -96,7 +96,9 @@ def infer_groups(eth_county: pd.DataFrame, acs_county: pd.DataFrame | None) -> p
     share = totals / totals.sum()
     rows = pd.DataFrame({"code": totals.index, "households": totals.values, "share": share.values})
     if GROUPS_FILE.exists():
-        given = {str(k).upper(): str(v).lower() for k, v in (yaml.safe_load(GROUPS_FILE.read_text()) or {}).items()}
+        # BaseLoader keeps every key a string (safe_load reads the code NO as false)
+        given = {str(k).upper(): str(v).lower()
+                 for k, v in (yaml.load(GROUPS_FILE.read_text(), Loader=yaml.BaseLoader) or {}).items()}
         rows["group"] = rows["code"].map(given).fillna("other")
         rows.loc[rows["code"] == "(missing)", "group"] = "missing"
         rows["source"] = f"{GROUPS_FILE.name}"
@@ -236,7 +238,9 @@ def main() -> None:
         notes.append(f"no infoUSA file for {MAP_YEAR}: no maps, ethnicity groups not inferred")
 
     # 3. ethnicity code -> group
-    groups = infer_groups(eth_county if eth_county is not None else eth.rename(columns={"state": "county"}),
+    # with a groups file, map every code seen in any year (codes such as Q6-Q8 start in 2018)
+    groups = infer_groups(eth.rename(columns={"state": "county"}) if GROUPS_FILE.exists() or eth_county is None
+                          else eth_county,
                           acs_county)
     code_group = dict(zip(groups["code"], groups["group"]))
     eth["group"] = eth["code"].map(code_group).fillna("other")
