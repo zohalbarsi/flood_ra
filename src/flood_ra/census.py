@@ -56,6 +56,11 @@ def _get(year: int, dataset: str, variables: list[str], geo_for: str, geo_in: li
         with urllib.request.urlopen(req, timeout=60) as r:
             body = r.read()
             status = r.status
+            if "key" in r.geturl().split("/")[-1]:  # redirected to missing_key / invalid_key page
+                LAST_ERROR[0] = ("the Census API needs a key: get one free at "
+                                 "https://api.census.gov/data/key_signup.html and set CENSUS_API_KEY")
+                DOWN[0] = True
+                raise ValueError(LAST_ERROR[0])
     except urllib.error.HTTPError as e:
         LAST_ERROR[0] = f"HTTP {e.code}: {e.read()[:150].decode(errors='replace').strip()}"
         raise
