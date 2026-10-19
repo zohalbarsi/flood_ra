@@ -1,7 +1,6 @@
 """Schema-only descriptions of data files: names, sizes, column names and
-types, never values, so the output is safe to commit. A CSV header the sniffer
-cannot confirm (all columns text) could be a data row, so its names are
-masked unless they look like identifiers (see safe_name)."""
+types."""
+
 from __future__ import annotations
 
 import re
