@@ -1,22 +1,11 @@
-# Project choices. Tracked in git so every result can be traced to the
-# settings that produced it. Machine-specific paths live in config/paths.yaml.
+# Project choices. Tracked in git so every result can be traced to the settings that produced it. Machine-specific paths live in config/paths.yaml.
 
-# Yearly infoUSA Consumer files, relative to infousa_raw. "**/" also picks up
-# the second versions in alt/. The macOS "._" copies, the uncompressed 2007
-# duplicate, the .zip and .Rhistory do not match.
 infousa_glob: "**/US_Consumer_5_File_*.csv.gz"
 infousa_delim: ","
-# latin-1 decodes any byte, so no household is dropped over an odd character
-# (utf-8 would reject such rows).
+
 infousa_encoding: latin-1
 
 # Years with two versions: which one the merge uses 
-#   2023: alt. Same NC families as main and identical on every shared column,
-#         plus title, age and gender, which main lacks.
-#   2024: main. Both versions have the same 6,299,994 NC families, but alt/ has
-#         no ages (Age_1-5 empty for every family), a coarser ethnicity coding
-#         (10 codes vs 154), and different gender, latitude and IndividualID
-#         values.
 prefer_version:
   2023: alt
   2024: main
@@ -32,9 +21,4 @@ flood_files:
   block_polygons: florence_census_block_flood_exposure.geojson   # outlines for the block merge
 
 # Which infoUSA columns build the tract / block-group IDs for the merge:
-#   census:  GE_CENSUS_STATE_2010, GE_CENSUS_COUNTY, GE_CENSUS_TRACT, GE_CENSUS_BG
-#   als2010: GE_CENSUS_STATE_2010, GE_ALS_COUNTY_CODE_2010, GE_ALS_CENSUS_TRACT_2010, GE_ALS_CENSUS_BG_2010
-# output/logs/merge_report.md shows the match rate under both. First real run:
-# als2010 matches 100% of tracts and block groups in every year; census matches
-# ~46% in 2007-2017 (Census 2000 tracts) and is empty from 2018.
 geo_family: als2010
