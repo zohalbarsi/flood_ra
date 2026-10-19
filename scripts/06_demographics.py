@@ -3,8 +3,10 @@ benchmarks; and maps of race and homeownership by census tract.
 
 Unit: households = primary families (PRIMARY_FAMILY_IND = 1). Variables
 (Data Axle dictionary):
-- owners / renters: OWNER_RENTER_STATUS 7-9 owner, 0-3 renter, 4-6 unknown;
-  the owner share is of households with a known status. Census: ACS B25003.
+- owners / renters: OWNER_RENTER_STATUS 7-9 owner, 0-3 renter, 4-6 unknown.
+  Plotted owner share: codes 7-9 among households coded 0-9, so the unknowns
+  count as renters (the Duke DPRC report's second measure, which is closer to
+  ACS). Tables also give owners among known codes (0-3, 7-9). Census: ACS B25003.
 - children: CHILDREN_IND = 1 and the mean of CHILDRENHHCOUNT. Census: ACS
   B11005 (households with someone under 18) and B09001 (people under 18 in
   households) per household.
@@ -64,6 +66,7 @@ def household_sql(src: str, by: str, universe: str = HH) -> str:
         SELECT {by}, count(*) AS households,
                count(*) FILTER (WHERE {own} BETWEEN 7 AND 9) AS owners,
                count(*) FILTER (WHERE {own} BETWEEN 0 AND 3) AS renters,
+               count(*) FILTER (WHERE {own} BETWEEN 0 AND 9) AS status_coded,
                count(*) FILTER (WHERE {own} = 9) AS owners_reported,
                count(*) FILTER (WHERE {own} = 0) AS renters_reported,
                count({kids}) AS kids_known,
@@ -101,6 +104,7 @@ def derive(hh: pd.DataFrame, eth: pd.DataFrame, code_group: dict) -> pd.DataFram
     hh = hh.merge((miss / eth.groupby(["state", "year"])["households"].sum()).rename("ethnicity_missing")
                   .reset_index(), on=["state", "year"], how="left")
     hh["owner_share"] = hh["owners"] / (hh["owners"] + hh["renters"])
+    hh["owner_share_duke"] = hh["owners"] / hh["status_coded"]
     hh["owner_share_reported"] = hh["owners_reported"] / (hh["owners_reported"] + hh["renters_reported"])
     hh["status_unknown"] = 1 - (hh["owners"] + hh["renters"]) / hh["households"]
     hh["children_share"] = hh["with_children"] / hh["kids_known"]
@@ -162,7 +166,7 @@ def plot_trends(state: pd.DataFrame, path: Path) -> None:
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
     panels = [
-        ("Owner share of households", "owner_share", "census_owner_share", "{:.0%}"),
+        ("Owner share (unknown codes count as renters)", "owner_share_duke", "census_owner_share", "{:.0%}"),
         ("Households with children", "children_share", "census_children_share", "{:.0%}"),
         ("Children per household", "children_per_hh", "census_children_per_hh", "{:.2f}"),
         ("Median household income ($)", "median_income", "census_median_income", "{:,.0f}"),
@@ -306,6 +310,7 @@ def main() -> None:
     if tracts is not None:
         tracts = tracts[tracts["households"] >= MIN_HH].copy()
         tracts["owner_share"] = tracts["owners"] / (tracts["owners"] + tracts["renters"])
+        tracts["owner_share_duke"] = tracts["owners"] / tracts["status_coded"]
         tract_eth["group"] = tract_eth["code"].map(code_group).fillna("other")
         te = tract_eth.pivot_table(index="geoid", columns="group", values="households", aggfunc="sum", fill_value=0)
         for g in ("white", "black"):
@@ -322,7 +327,8 @@ def main() -> None:
             wbc = at["householders_white_nh"] + at["householders_black"]
             at["census_black_share_wb"] = at["householders_black"] / wbc.where(wbc > 0)
             both = tracts.merge(at, on="geoid")
-            for ours, cen, label in (("owner_share", "census_owner_share", "owner share"),
+            for ours, cen, label in (("owner_share_duke", "census_owner_share", "owner share, unknowns as renters"),
+                                     ("owner_share", "census_owner_share", "owner share, known codes only"),
                                      ("black_share_wb", "census_black_share_wb", "Black share of Black+White")):
                 ok = both[[ours, cen]].dropna()
                 r = np.corrcoef(ok[ours], ok[cen])[0, 1] if len(ok) > 2 else np.nan
@@ -334,8 +340,8 @@ def main() -> None:
             plot_maps(shapes, tracts, at, outline, "black_share_wb", "census_black_share_wb",
                       "Black share of Black and White households", "PuOr", 0, 1,
                       FIGURES / f"map_race_{MAP_YEAR}.png")
-            plot_maps(shapes, tracts, at, outline, "owner_share", "census_owner_share",
-                      "Owner share of households (known status)", "YlGnBu", 0.2, 1,
+            plot_maps(shapes, tracts, at, outline, "owner_share_duke", "census_owner_share",
+                      "Owner share of households (unknown codes count as renters)", "YlGnBu", 0.2, 1,
                       FIGURES / f"map_owners_{MAP_YEAR}.png")
         except Exception as e:  # noqa: BLE001
             notes.append(f"maps not drawn: {type(e).__name__}: {str(e).splitlines()[0][:150] if str(e) else ''}")
@@ -365,7 +371,7 @@ def main() -> None:
         "Does counting subfamilies too (all family records) bring infoUSA closer to the Census? "
         "Each measure three ways: primary families (prim.), all family records (all) and ACS.", "",
         *table(fmt(hh, {"households": "0", "households_all": "0", "census_households": "0",
-                        "owner_share": "%", "owner_share_all": "%", "census_owner_share": "%",
+                        "owner_share_duke": "%", "owner_share_duke_all": "%", "census_owner_share": "%",
                         "children_share": "%", "children_share_all": "%", "census_children_share": "%"})
                .rename(columns=lambda c: c.replace(" all", " (all)"))),
         *table(fmt(hh, {"median_income": "0", "median_income_all": "0", "census_median_income": "0",
@@ -373,9 +379,11 @@ def main() -> None:
                         "hispanic_share": "%", "hispanic_share_all": "%", "census_hispanic_share": "%"})
                .rename(columns=lambda c: c.replace(" all", " (all)"))),
         "## Owners and renters (primary families)", "",
-        "owner share: OWNER_RENTER_STATUS 7-9 among households with 0-3 or 7-9; reported: 9 among "
-        "9 and 0; status unknown: share coded 4-6 or missing.", "",
-        *table(fmt(hh, {"households": "0", "owner_share": "%", "owner_share_reported": "%",
+        "owner share duke (plotted): OWNER_RENTER_STATUS 7-9 among households coded 0-9, so the "
+        "unknowns (4-6) count as renters, as in the Duke DPRC report's Table 6; it moves with Data "
+        "Axle's recoding of unknowns (2015, 2019, 2025). owner share: 7-9 among households with 0-3 or "
+        "7-9; reported: 9 among 9 and 0; status unknown: share coded 4-6 or missing.", "",
+        *table(fmt(hh, {"households": "0", "owner_share_duke": "%", "owner_share": "%", "owner_share_reported": "%",
                         "status_unknown": "%", "census_owner_share": "%", "census_households": "0"})),
         "## Children", "",
         *table(fmt(hh, {"children_share": "%", "census_children_share": "%", "children_per_hh": "2",
