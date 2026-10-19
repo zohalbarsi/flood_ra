@@ -2,6 +2,7 @@
 types, never values, so the output is safe to commit."""
 from __future__ import annotations
 
+import re
 import zipfile
 from collections import Counter
 from pathlib import Path
@@ -52,7 +53,6 @@ def section(con, title: str, root: Path, glob: str | None = None, max_files: int
         n = sum(1 for p in root.glob(glob) if p.is_file())
         out += [f"**{n} match infousa_glob `{glob}`** (the files step 01 converts)", ""]
     if max_files is not None:
-        import re
         groups: dict[str, list[Path]] = {}
         for f in files:
             groups.setdefault(re.sub(r"\d", "#", str(f.relative_to(root))), []).append(f)
@@ -69,4 +69,53 @@ def section(con, title: str, root: Path, glob: str | None = None, max_files: int
         out.append(f"### `{f.relative_to(root)}` ({sizes[f]:.2f} GB)")
         out += describe(con, f)
         out.append("")
+    return out
+
+
+# State postal codes (plus DC, PR) as they appear in per-state file names
+STATE_CODES = ("AL|AK|AZ|AR|CA|CO|CT|DE|DC|FL|GA|HI|ID|IL|IN|IA|KS|KY|LA|ME|MD|MA|MI|MN|MS|MO|MT|NE|NV|"
+               "NH|NJ|NM|NY|NC|ND|OH|OK|OR|PA|RI|SC|SD|TN|TX|UT|VT|VA|WA|WV|WI|WY|PR")
+_STATE = re.compile(rf"(?<![A-Za-z])({STATE_CODES})(?![A-Za-z])")
+
+
+def pattern(rel: str) -> str:
+    """File path with state codes as {ST} and digit runs as #."""
+    return re.sub(r"\d+", "#", _STATE.sub("{ST}", rel))
+
+
+def compact_section(con, title: str, root: Path, prefer: tuple[str, ...] = (),
+                    list_max: int = 12) -> list[str]:
+    """Like section(), but files are grouped by name pattern (state codes as
+    {ST}, digits as #) and each distinct column layout in a group is shown
+    once, with the files that share it. Every tabular file is still read.
+    Files of the `prefer` states are listed first."""
+    files = sorted(p for p in root.rglob("*") if p.is_file())
+    sizes = {p: p.stat().st_size / 1e9 for p in files}
+    exts = Counter(p.suffix.lower() or "(none)" for p in files)
+    groups: dict[str, list[Path]] = {}
+    for f in files:
+        groups.setdefault(pattern(str(f.relative_to(root))), []).append(f)
+    out = [f"## {title}", "", f"`{root}`: {len(files)} files, {sum(sizes.values()):.1f} GB, "
+           f"{len(groups)} name patterns", "",
+           "by extension: " + ", ".join(f"{e} ({n})" for e, n in exts.most_common()), "",
+           "Files grouped by name pattern ({ST} = a state code, # = digits). Each distinct "
+           "column layout in a group is listed once, with the files that have it.", ""]
+
+    def names(ms: list[Path]) -> str:
+        ms = sorted(ms, key=lambda m: not any(c in prefer for c in _STATE.findall(str(m.relative_to(root)))))
+        shown = ", ".join(f"`{m.relative_to(root)}` ({sizes[m]:.2f} GB)" for m in ms[:list_max])
+        return shown + (f", ... and {len(ms) - list_max} more" if len(ms) > list_max else "")
+
+    for pat, members in groups.items():
+        states = sorted({m.group(1) for f in members for m in _STATE.finditer(str(f.relative_to(root)))})
+        out.append(f"### `{pat}` ({len(members)} files, {sum(sizes[m] for m in members):.2f} GB)")
+        if states:
+            out.append(f"states ({len(states)}): {' '.join(states)}")
+        out.append("")
+        layouts: dict[tuple, list[Path]] = {}
+        for f in members:
+            layouts.setdefault(tuple(describe(con, f)), []).append(f)
+        for layout, ms in layouts.items():
+            out += [f"{len(ms)} file(s): {names(ms)}", ""]
+            out += list(layout) + ([""] if layout else [])
     return out
