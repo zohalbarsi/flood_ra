@@ -42,6 +42,12 @@ ACS_VARS = {
     "B11001H_001E": "householders_white_nh",
     "B11001I_001E": "householders_hispanic",
 }
+# Age of householder (B25007: tenure by age of householder), owners + renters
+AGE_BANDS = ["15-24", "25-34", "35-44", "45-54", "55-59", "60-64", "65-74", "75-84", "85+"]
+AGE_VARS = {"B25007_001E": "households"}
+AGE_VARS.update({f"B25007_{3 + i:03d}E": f"owner_{b}" for i, b in enumerate(AGE_BANDS)})
+AGE_VARS.update({f"B25007_{13 + i:03d}E": f"renter_{b}" for i, b in enumerate(AGE_BANDS)})
+
 SMALL_AREA_VARS = ["B25003_001E", "B25003_002E", "B25003_003E", "B11001_001E", "B11001A_001E",
                    "B11001B_001E", "B11001D_001E", "B11001H_001E", "B11001I_001E"]
 
@@ -106,30 +112,32 @@ def fetch(year: int, dataset: str, variables: list[str], geo_for: str,
     return out, missing
 
 
-def _numeric(d: pd.DataFrame, variables: list[str]) -> pd.DataFrame:
+def _numeric(d: pd.DataFrame, variables: list[str], names: dict = ACS_VARS) -> pd.DataFrame:
     for v in variables:
         if v in d:
             d[v] = pd.to_numeric(d[v], errors="coerce")
             d.loc[d[v] < 0, v] = None  # the API codes "not available" as large negatives
-    return d.rename(columns=ACS_VARS)
+    return d.rename(columns=names)
 
 
-def state_series(years: list[int], fips: list[str]) -> tuple[pd.DataFrame, list[str]]:
-    """ACS 1-year state estimates, one row per state and year (the 2020
-    1-year release does not exist). Cached in benchmarks/acs1_state.csv."""
-    cache = BENCH / "acs1_state.csv"
+def state_series(years: list[int], fips: list[str], variables: dict = ACS_VARS,
+                 cache_name: str = "acs1_state.csv") -> tuple[pd.DataFrame, list[str]]:
+    """ACS 1-year state estimates of `variables` ({API name: column name}),
+    one row per state and year (the 2020 1-year release does not exist).
+    Cached in benchmarks/<cache_name>."""
+    cache = BENCH / cache_name
     have = pd.read_csv(cache, dtype={"state": str}) if cache.exists() else pd.DataFrame()
     notes, new = [], []
     for y in years:
         if y == 2020 or (len(have) and ((have["year"] == y) & have["state"].isin(fips)).sum() == len(fips)):
             continue
-        d, missing = fetch(y, "acs/acs1", list(ACS_VARS), "state:" + ",".join(fips))
+        d, missing = fetch(y, "acs/acs1", list(variables), "state:" + ",".join(fips))
         if d is None:
             notes.append(f"ACS 1-year {y}: not available ({LAST_ERROR[0]})")
             continue
         if missing:
             notes.append(f"ACS 1-year {y}: missing {', '.join(missing)}")
-        d = _numeric(d.drop(columns="NAME", errors="ignore"), list(ACS_VARS))
+        d = _numeric(d.drop(columns="NAME", errors="ignore"), list(variables), variables)
         d.insert(0, "year", y)
         new.append(d)
     if new:
