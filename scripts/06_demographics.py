@@ -180,10 +180,7 @@ def plot_trends(state: pd.DataFrame, path: Path) -> None:
     for ax, (title, ours, cen, fmt) in zip(axes.flat, panels):
         for st, d in state.groupby("state"):
             d = d.sort_values("year")
-            ax.plot(d["year"], d[ours], "-", color=COLORS.get(st), lw=2, label=f"{st} infoUSA, primary families")
-            if f"{ours}_all" in d:
-                ax.plot(d["year"], d[f"{ours}_all"], ":", color=COLORS.get(st), lw=1.6,
-                        label=f"{st} infoUSA, all family records")
+            ax.plot(d["year"], d[ours], "-", color=COLORS.get(st), lw=2, label=f"{st} infoUSA")
             if cen and cen in d and d[cen].notna().any():
                 ax.plot(d["year"], d[cen], "--o", color=COLORS.get(st), ms=3, lw=1.2, label=f"{st} Census (ACS)")
         ax.set_title(title, fontsize=11)
@@ -239,17 +236,13 @@ def main() -> None:
     notes = []
 
     # 1. infoUSA measures by state-year, and ethnicity codes by state-year
-    # (and the same over all family records, subfamilies included: suffix _all)
-    hh, eth, hh_all, eth_all = [], [], [], []
+    hh, eth = [], []
     for year, f in files.items():
         src = f"read_parquet('{f.as_posix()}')"
         hh.append(con.sql(household_sql(src, "upper(trim(STATE)) AS state")).df().assign(year=year))
         eth.append(con.sql(eth_sql(src, "upper(trim(STATE)) AS state")).df().assign(year=year))
-        hh_all.append(con.sql(household_sql(src, "upper(trim(STATE)) AS state", "true")).df().assign(year=year))
-        eth_all.append(con.sql(eth_sql(src, "upper(trim(STATE)) AS state", "true")).df().assign(year=year))
         print(f"{year}: households measured", flush=True)
     hh, eth = pd.concat(hh, ignore_index=True), pd.concat(eth, ignore_index=True)
-    hh_all, eth_all = pd.concat(hh_all, ignore_index=True), pd.concat(eth_all, ignore_index=True)
 
     # 2. small areas in the map year: counties (to infer ethnicity groups) and tracts (maps)
     map_file = files.get(MAP_YEAR)
@@ -273,8 +266,6 @@ def main() -> None:
     code_group = dict(zip(groups["code"], groups["group"]))
     eth["group"] = eth["code"].map(code_group).fillna("other")
     hh = derive(hh, eth, code_group)
-    hh_all = derive(hh_all, eth_all, code_group)
-    hh = hh.merge(hh_all.drop(columns=["ethnicity_missing"]), on=["state", "year"], suffixes=("", "_all"))
 
     # 4. Census state series
     acs, n3 = census.state_series(sorted(hh["year"].unique()), fips)
@@ -367,17 +358,6 @@ def main() -> None:
         "state estimates (no 2020 release). Figures: `output/figures/`; full tables: "
         f"`output/tables/`. {census.cache_note()}", "",
         *([("Notes: " + "; ".join(notes)), ""] if notes else []),
-        "## Primary families vs all family records", "",
-        "Does counting subfamilies too (all family records) bring infoUSA closer to the Census? "
-        "Each measure three ways: primary families (prim.), all family records (all) and ACS.", "",
-        *table(fmt(hh, {"households": "0", "households_all": "0", "census_households": "0",
-                        "owner_share_duke": "%", "owner_share_duke_all": "%", "census_owner_share": "%",
-                        "children_share": "%", "children_share_all": "%", "census_children_share": "%"})
-               .rename(columns=lambda c: c.replace(" all", " (all)"))),
-        *table(fmt(hh, {"median_income": "0", "median_income_all": "0", "census_median_income": "0",
-                        "black_share": "%", "black_share_all": "%", "census_black_share": "%",
-                        "hispanic_share": "%", "hispanic_share_all": "%", "census_hispanic_share": "%"})
-               .rename(columns=lambda c: c.replace(" all", " (all)"))),
         "## Owners and renters (primary families)", "",
         "owner share duke (plotted): OWNER_RENTER_STATUS 7-9 among households coded 0-9, so the "
         "unknowns (4-6) count as renters, as in the Duke DPRC report's Table 6; it moves with Data "
