@@ -132,23 +132,27 @@ Raw inputs are read-only: the pipeline never writes into `infousa_raw` or
 - **Sample definition.** The file has more records than NC has households
   (4.4M in 2007, 7.8M in 2025). Per the data dictionary, `LOCATIONID` links a
   primary family with its subfamilies, so a `LOCATIONID` is a household and
-  `PRIMARY_FAMILY_IND = 1` marks its primary family: about one per address,
-  3.77M in 2010 against 3.75M households in the 2010 Census. The subfamilies
-  grow from 14% to 39% of records, far above Census subfamily rates;
+  `PRIMARY_FAMILY_IND = 1` marks its primary family. Primary families track
+  Census / ACS household counts within about +-4% in most years in both
+  states (NC 2010: 3.77M vs 3.75M; SC 2020: 2.03M vs 2.05M), with larger
+  gaps in 2007 and 2013 (NC +6.5%), 2010 (SC -7.6%) and 2023 (NC -8%, SC
+  -11%). They exceed distinct `LOCATIONID`s by 0.6-4.4% a year, so "one per
+  address" is approximate. The subfamilies grow from 13% to 38% of records
+  (NC and SC), far above Census subfamily rates;
   `sample_report.md` checks whether their adults are also listed in the
   primary family. Candidates to drop for location-based exposure:
   `VACANT = 1`, `USPSNOSTATS = 1`, PO boxes (`ADDRESSTYPE = P`), nursing and
   retirement homes (`LOCATION_TYPE` N, R) and coarse geocodes
   (`GE_CENSUS_LEVEL_2010` other than `P`; the dictionary gives no codes for
   this field).
-- **Movers and attrition.** Of each year's primary families, 82-91% appear
-  the next year under the same FAMILYID (5-8% at a new NC address) and 9-18%
-  do not, more than out-of-state moves explain. Only 3-5% of the missing
-  families' first person reappears under another FAMILYID, so most of the
-  loss is records leaving the file, not re-keying: "not found" should not be
-  read as "moved away". (These figures are from the NC-only run; with SC
-  added, moves between NC and SC are followed. Moves to other states still
-  look like attrition.)
+- **Movers and attrition.** Of each year's primary families (NC and SC),
+  81-90% appear the next year under the same FAMILYID (5-7% at a new
+  address) and 10-19% do not, more than out-of-state moves explain. Only
+  3-5% of the missing families' first person reappears under another
+  FAMILYID, and the files hold no inactive (I) or moved-out (M) records, so
+  most of the loss is records leaving the file: "not found" should not be
+  read as "moved away". Adding SC barely changed these shares; at most 2-3%
+  of NC primary families a year are recovered by following moves into SC.
 - **Baseline year.** Florence hit in September 2018; whether the 2018 file
   shows pre- or post-storm addresses depends on when it was compiled.
 - **Geocode precision for the block merge.** A household's block is only as
@@ -157,6 +161,24 @@ Raw inputs are read-only: the pipeline never writes into `infousa_raw` or
   (97-99% from 2020, where codes and coordinates likely come from the same,
   possibly coarse, geocode). Use block exposure for level `P`; for the other
   levels prefer tract or block-group exposure, or drop them.
+
+## Data breaks to model (year effects, ideally by state)
+
+- **2013 and 2025:** records jump (+13% and +21%), mostly subfamilies
+  (+47%, +50%); the 2013 level persists. 2025 also triples the unknown
+  owner/renter codes (4-6: 15% to 27%) and fills the 2000-geography columns
+  with other content.
+- **2023:** records dip (NC -9%, SC -6%) and recover in 2024; 2022->23 has
+  the highest attrition. Both 2023 versions agree, so it is in the vendor file.
+- **2015:** the 2010 county codes start agreeing with the 2000 codes; in
+  2007-2014 they put about 150,000 fewer NC records a year in the 34 flood
+  counties. `block_assignment.md` (county codes vs coordinates) shows which
+  coding is right.
+- **2018-2020:** the geocode-level coding and the coordinate format switch to
+  a new scheme in 2018, back in 2019, and again from 2020, around the storm.
+- **Flags:** `HOUSEHOLDSTATUS` is blank in 2007-2010, `VACANT` in 2007-2008,
+  `USPSNOSTATS` in 2007-2009; `VACANT = 1` falls from 1.3% to 0.1% in 2015.
+- NC and SC records move in opposite directions in 5 of 18 years.
 
 ## Codebook notes (Data Axle data dictionary)
 

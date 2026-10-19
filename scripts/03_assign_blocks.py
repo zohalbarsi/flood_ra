@@ -73,7 +73,7 @@ def main() -> None:
     con.sql(f"CREATE TABLE pb AS SELECT * FROM read_parquet('{paths.POINT_BLOCKS.as_posix()}')")
     con.sql("CREATE TABLE covered AS SELECT DISTINCT left(tract_geoid, 5) AS county FROM "
             f"read_parquet('{(paths.FLOOD_CLEAN / 'flood_tract.parquet').as_posix()}')")
-    rows = []
+    rows, membership = [], []
     for year, f in files.items():
         r = con.sql(f"""
             WITH h AS (SELECT {geo.tract_geoid(fam)} AS t, {geo.bg_geoid(fam)} AS b,
@@ -97,6 +97,23 @@ def main() -> None:
         rows.append([year, f"{n:,}", share(coords, n), share(found, n), share(tract, found),
                      share(bg, found), share(tract_p, found_p), share(tract_o, found_o)])
 
+        # Who is in the flood counties: by the merge-key county code, by the 2000
+        # county code, or by coordinates (a point in a flood block)?
+        codes, xy, both, c2000, c2000_xy = con.sql(f"""
+            WITH h AS (SELECT left({geo.tract_geoid(fam)}, 5) AS cty,
+                              norm_state("GE_CENSUS_STATE_2010") || norm_county("GE_CENSUS_COUNTY") AS cty2000,
+                              {geo.LATITUDE} AS latitude, {geo.LONGITUDE} AS longitude
+                       FROM read_parquet('{f.as_posix()}'))
+            SELECT count(*) FILTER (WHERE cty IN (SELECT county FROM covered)),
+                   count(pb.block_geoid),
+                   count(pb.block_geoid) FILTER (WHERE cty IN (SELECT county FROM covered)),
+                   count(*) FILTER (WHERE cty2000 IN (SELECT county FROM covered)),
+                   count(pb.block_geoid) FILTER (WHERE cty2000 IN (SELECT county FROM covered))
+            FROM h LEFT JOIN pb ON pb.latitude = h.latitude AND pb.longitude = h.longitude
+        """).fetchone()
+        membership.append([year, f"{codes:,}", f"{xy:,}", f"{both:,}", f"{codes - both:,}", f"{xy - both:,}",
+                           f"{c2000:,}" if c2000 else "", f"{xy - c2000_xy:,}" if c2000 else ""])
+
     minutes = (time.time() - t0) / 60
     REPORT.write_text("\n".join([
         "# Block assignment (counts and shares only)", "",
@@ -110,6 +127,14 @@ def main() -> None:
         "(share of those in a block); level P / other levels split that by GE_CENSUS_LEVEL_2010.", "",
         *table(pd.DataFrame(rows, columns=["year", "family records", "coordinates", "in a block", "same tract",
                                            "same BG", "same tract, level P", "same tract, other levels"])),
+        "## Flood-county membership: county codes vs coordinates", "",
+        f"All family records. by code: county ({fam} codes, the merge key) is a flood county. "
+        "by coordinates: the point falls in a flood-county block. code only / coordinates only: "
+        "in one but not the other. 2000 code: the Census 2000 county code (GE_CENSUS_COUNTY, "
+        "empty from 2018) is a flood county; last column: in a flood block but not by the 2000 code.", "",
+        *table(pd.DataFrame(membership, columns=["year", "by code", "by coordinates", "both", "code only",
+                                                 "coordinates only", "by 2000 code",
+                                                 "coordinates only vs 2000 code"])),
     ]))
     print(f"wrote {REPORT} ({minutes:.1f} min)")
 
