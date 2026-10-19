@@ -51,9 +51,28 @@ def _get(year: int, dataset: str, variables: list[str], geo_for: str, geo_in: li
     if os.environ.get("CENSUS_API_KEY"):
         q.append(("key", os.environ["CENSUS_API_KEY"]))
     url = f"{API}/{year}/{dataset}?" + urllib.parse.urlencode(q, safe=":*,")
-    with urllib.request.urlopen(url, timeout=60) as r:
-        rows = json.load(r)
+    req = urllib.request.Request(url, headers={"User-Agent": "flood_ra research pipeline"})
+    try:
+        with urllib.request.urlopen(req, timeout=60) as r:
+            body = r.read()
+            status = r.status
+    except urllib.error.HTTPError as e:
+        LAST_ERROR[0] = f"HTTP {e.code}: {e.read()[:150].decode(errors='replace').strip()}"
+        raise
+    except (urllib.error.URLError, OSError) as e:
+        LAST_ERROR[0] = f"{type(e).__name__}: {e}"[:200]
+        DOWN[0] = True  # no connection at all: skip further calls this run
+        raise
+    try:
+        rows = json.loads(body)
+    except ValueError:
+        LAST_ERROR[0] = f"HTTP {status}, not data: {body[:150].decode(errors='replace').strip() or '(empty reply)'}"
+        raise
     return pd.DataFrame(rows[1:], columns=rows[0])
+
+
+LAST_ERROR = [""]  # why the latest call failed, for the report
+DOWN = [False]
 
 
 def fetch(year: int, dataset: str, variables: list[str], geo_for: str,
@@ -61,10 +80,13 @@ def fetch(year: int, dataset: str, variables: list[str], geo_for: str,
     """One call for all variables; if that fails, one call per variable, so a
     table missing in some year only loses that variable. Returns the data
     (None if nothing came back) and the variables that could not be fetched."""
+    if DOWN[0]:
+        return None, list(variables)
     try:
         return _get(year, dataset, variables, geo_for, list(geo_in)), []
     except (urllib.error.URLError, OSError, ValueError):
-        pass
+        if DOWN[0] or "(empty reply)" in LAST_ERROR[0]:
+            return None, list(variables)
     out, missing = None, []
     keys = [k for k in ("state", "county", "tract") if f"{k}:" in geo_for or any(f"{k}:" in g for g in geo_in)]
     for v in variables:
@@ -96,7 +118,7 @@ def state_series(years: list[int], fips: list[str]) -> tuple[pd.DataFrame, list[
             continue
         d, missing = fetch(y, "acs/acs1", list(ACS_VARS), "state:" + ",".join(fips))
         if d is None:
-            notes.append(f"ACS 1-year {y}: not available")
+            notes.append(f"ACS 1-year {y}: not available ({LAST_ERROR[0]})")
             continue
         if missing:
             notes.append(f"ACS 1-year {y}: missing {', '.join(missing)}")
@@ -121,10 +143,10 @@ def small_areas(year: int, level: str, fips: list[str]) -> tuple[pd.DataFrame | 
         geo_in = [f"state:{st}"] + (["county:*"] if level == "tract" else [])
         d, missing = fetch(year, "acs/acs5", SMALL_AREA_VARS, f"{level}:*", geo_in)
         if d is None:
-            notes.append(f"ACS 5-year {year} {level}s, state {st}: not available")
+            notes.append(f"ACS 5-year {year} {"counties" if level == "county" else "tracts"}, state {st}: not available ({LAST_ERROR[0]})")
             continue
         if missing:
-            notes.append(f"ACS 5-year {year} {level}s, state {st}: missing {', '.join(missing)}")
+            notes.append(f"ACS 5-year {year} {"counties" if level == "county" else "tracts"}, state {st}: missing {', '.join(missing)}")
         d["geoid"] = d["state"] + d["county"] + (d["tract"] if level == "tract" else "")
         parts.append(_numeric(d[["geoid"] + [v for v in SMALL_AREA_VARS if v in d]], SMALL_AREA_VARS))
     if not parts:
