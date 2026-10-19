@@ -129,7 +129,8 @@ def state_series(years: list[int], fips: list[str], variables: dict = ACS_VARS,
     have = pd.read_csv(cache, dtype={"state": str}) if cache.exists() else pd.DataFrame()
     notes, new = [], []
     for y in years:
-        if y == 2020 or (len(have) and ((have["year"] == y) & have["state"].isin(fips)).sum() == len(fips)):
+        if y == 2020 or (len(have) and set(variables.values()) <= set(have.columns)
+                         and ((have["year"] == y) & have["state"].isin(fips)).sum() == len(fips)):
             continue
         d, missing = fetch(y, "acs/acs1", list(variables), "state:" + ",".join(fips))
         if d is None:
