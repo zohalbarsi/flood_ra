@@ -52,8 +52,9 @@ def define_macros(con: duckdb.DuckDBPyConnection) -> None:
     con.sql(f"""CREATE OR REPLACE MACRO norm_state(s) AS CASE
         WHEN regexp_full_match(trim(s), '[0-9]{{1,2}}') THEN right('00' || trim(s), 2)
         ELSE CASE upper(trim(s)) {postal} END END""")
-    con.sql(r"""CREATE OR REPLACE MACRO norm_county(c) AS CASE
-        WHEN regexp_full_match(trim(c), '[0-9]{1,5}') THEN right('000' || trim(c), 3) END""")
+    # county 000 means unknown
+    con.sql(r"""CREATE OR REPLACE MACRO norm_county(c) AS NULLIF(CASE
+        WHEN regexp_full_match(trim(c), '[0-9]{1,5}') THEN right('000' || trim(c), 3) END, '000')""")
     # tract 000000 means unknown (Data Axle data dictionary)
     con.sql(r"""CREATE OR REPLACE MACRO norm_tract(t) AS NULLIF(CASE
         WHEN regexp_full_match(trim(t), '[0-9]{1,4}\.[0-9]{1,2}')
@@ -72,6 +73,20 @@ def define_macros(con: duckdb.DuckDBPyConnection) -> None:
 # SQL for a household's coordinates as numbers (needs define_macros)
 LATITUDE = 'parse_lat("GE_LATITUDE_2010")'
 LONGITUDE = 'parse_lon("GE_LONGITUDE_2010")'
+
+
+def county_fips(family: str) -> str:
+    """SQL for the 5-digit county read directly from one set of county columns
+    (not through the tract, so an unknown tract does not lose the county)."""
+    s, c, _, _ = FAMILIES[family]
+    return f'(norm_state("{s}") || norm_county("{c}"))'
+
+
+# The Census 2000 county code: usable as a fallback only in files up to 2017
+# (2018 copies the 2010 code, 2019 is partly filled, 2020-2024 are empty and
+# 2025 holds other content).
+COUNTY_2000 = county_fips("census")
+COUNTY_2000_LAST_YEAR = 2017
 
 
 def tract_geoid(family: str) -> str:

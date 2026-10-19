@@ -74,11 +74,25 @@ When a pull changes `requirements.txt`, run `pip install -r requirements.txt` fi
   coordinates (point in polygon, once per distinct coordinate across all
   years). Its report checks the blocks against the households' tract and
   block-group codes, by geocode level.
-- **04** builds tract and block-group GEOIDs from the infoUSA census columns
-  and left-joins the tract, block-group and block flood measures, plus
-  `block_geoid`, numeric `latitude`/`longitude` and `in_flood_counties`
-  (outside those counties the flood measures are missing, not zero). Its
-  report gives match rates under both census column sets.
+- **04** gives each record a county, tract and block group, then left-joins
+  the tract, block-group and block flood measures. Added columns:
+  - `county_fips`: the county code. If that is unknown, the Census 2000
+    county code (files up to 2017), else the county of the record's block.
+  - `tract_geoid`, `bg_geoid`: from the codes. They come from the block only
+    if the code is unknown, the geocode is level `P` and the block is not in
+    another county.
+  - `*_source`: which of these each value came from.
+  - `block_geoid`: the block containing the coordinates. Block measures are
+    joined only if that block lies in the record's county.
+  - `block_exposure_ok`: the block measures are joined and the geocode is
+    level `P`.
+  - `*_xy`: the county, tract and block group taken from the coordinates
+    alone, for checks.
+  - `in_flood_counties`, plus `in_flood_counties_code` and
+    `in_flood_counties_xy` (codes only, coordinates only). Outside the flood
+    counties the flood measures are missing, not zero.
+
+  The step 04 report compares these rules year by year.
 - **05** describes the family records to guide sample restrictions:
   version comparison, families per address, year-to-year continuity,
   record-status flags, geocode precision, record recency and code formats.
@@ -114,10 +128,16 @@ Raw inputs are read-only: the pipeline never writes into `infousa_raw` or
   kept as a comparison group and so that families moving between NC and SC
   are followed; they have no flood measures (`in_flood_counties` is false).
 - **Merge key: `GE_ALS_*_2010` columns**, the Census 2010 geography in the
-  data dictionary. They match 100% of tracts and block groups in every year.
-  The `GE_CENSUS_*` columns are Census 2000 geography (hence the ~43% match in
-  2007-2017) and are empty from 2018 on. Tract `000000` means unknown and is
-  treated as missing.
+  data dictionary. Their valid tract and block-group codes all match the
+  flood data.
+  - Tract `000000` and county `000` mean unknown and are treated as missing.
+  - The county is read from its own code, not from the tract, so a record
+    with an unknown tract keeps its county.
+  - The `GE_CENSUS_*` columns are Census 2000 geography, hence the ~43%
+    tract match in 2007-2017. In 2018 they copy the 2010 codes, in 2019 they
+    disagree with them, in 2020-2024 they are empty, and in 2025 they hold
+    other content. The 2000 county code is therefore a fallback only up to
+    2017.
 - **Block level: built** from household coordinates (no block code in
   infoUSA). 99.7-99.9% of family records in the flood counties fall in a block.
   For geocode level `P` the block lies in the household's census tract
@@ -137,7 +157,12 @@ Raw inputs are read-only: the pipeline never writes into `infousa_raw` or
   states (NC 2010: 3.77M vs 3.75M; SC 2020: 2.03M vs 2.05M), with larger
   gaps in 2007 and 2013 (NC +6.5%), 2010 (SC -7.6%) and 2023 (NC -8%, SC
   -11%). They exceed distinct `LOCATIONID`s by 0.6-4.4% a year, so "one per
-  address" is approximate. The subfamilies grow from 13% to 38% of records
+  address" is approximate. Against Census adults (18+), adults in primary
+  families are 11% (NC) and 24% (SC) short in 2010, but within 2% in 2020.
+  Adults per primary family rise from 1.71 to 1.90 in NC over that decade.
+  So subfamilies fill a shortfall early and add excess records later. The
+  Census count includes group quarters, so the household benchmark is a few
+  percent lower. The subfamilies grow from 13% to 38% of records
   (NC and SC), far above Census subfamily rates;
   `sample_report.md` checks whether their adults are also listed in the
   primary family. Candidates to drop for location-based exposure:
@@ -156,11 +181,13 @@ Raw inputs are read-only: the pipeline never writes into `infousa_raw` or
 - **Baseline year.** Florence hit in September 2018; whether the 2018 file
   shows pre- or post-storm addresses depends on when it was compiled.
 - **Geocode precision for the block merge.** A household's block is only as
-  good as its coordinates. For levels other than `P` (10-20% of records) the
-  block agrees with the tract code only 72-83% of the time in 2007-2019
-  (97-99% from 2020, where codes and coordinates likely come from the same,
-  possibly coarse, geocode). Use block exposure for level `P`; for the other
-  levels prefer tract or block-group exposure, or drop them.
+  good as its coordinates.
+  - For levels other than `P` (10-20% of records), the block agrees with the
+    tract code only 72-83% of the time in 2007-2019.
+  - From 2020 the agreement is 97-99%, probably because codes and
+    coordinates come from the same, possibly coarse, geocode.
+  - Use block exposure only where `block_exposure_ok`. For other records,
+    prefer tract or block-group exposure, or drop them.
 
 ## Data breaks to model (year effects, ideally by state)
 
@@ -170,10 +197,12 @@ Raw inputs are read-only: the pipeline never writes into `infousa_raw` or
   with other content.
 - **2023:** records dip (NC -9%, SC -6%) and recover in 2024; 2022->23 has
   the highest attrition. Both 2023 versions agree, so it is in the vendor file.
-- **2015:** the 2010 county codes start agreeing with the 2000 codes; in
-  2007-2014 they put about 150,000 fewer NC records a year in the 34 flood
-  counties. `block_assignment.md` (county codes vs coordinates) shows which
-  coding is right.
+- **2007-2014: unknown tracts.** About 600,000-690,000 records a year have
+  tract `000000` but a known county. The first merge took the county from
+  the tract, so these records (about 150,000 a year in the flood counties)
+  were left out of the flood counties. Fixed in step 04: the county now
+  comes from its own code. Where the geocode is level `P`, the tract is
+  filled from the record's block. `merge_report.md` counts both.
 - **2018-2020:** the geocode-level coding and the coordinate format switch to
   a new scheme in 2018, back in 2019, and again from 2020, around the storm.
 - **Flags:** `HOUSEHOLDSTATUS` is blank in 2007-2010, `VACANT` in 2007-2008,
