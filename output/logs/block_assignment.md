@@ -1,6 +1,6 @@
 # Block assignment (counts and shares only)
 
-106,518 block outlines; 7,039,087 distinct household coordinates in their bounding box (all years); 3,807,413 fall in a block, 22 of them on a line between blocks (given the lower GEOID). 1.2 minutes.
+106,518 block outlines; 7,658,013 distinct household coordinates in their bounding box (all years); 3,807,451 fall in a block, 22 of them on a line between blocks (given the lower GEOID). 1.3 minutes.
 
 Households whose county (als2010 codes) is covered by the flood data. coordinates: usable latitude and longitude. in a block: the coordinates fall in a block outline. same tract / same BG: the block lies in the household's census tract / block group (share of those in a block); level P / other levels split that by GE_CENSUS_LEVEL_2010.
 

@@ -19,3 +19,24 @@
 2026-10-07 13:01  2023 alt (US_Consumer_5_File_2023.csv.gz): 5,717,475 households kept (NC 5,717,475); 76 of 97 columns; rejected rows: none; 16.3 min
 2026-10-07 13:04  2025 main (US_Consumer_5_File_2025.csv.gz): 7,844,644 households kept (NC 7,844,644); 76 of 97 columns; rejected rows: none; 19.9 min
 2026-10-07 13:10  2024 alt (US_Consumer_5_File_2024.csv.gz): 6,299,994 households kept (NC 6,299,994); 76 of 97 columns; rejected rows: none; 12.7 min
+2026-10-09 08:26  2010 main (US_Consumer_5_File_2010.csv.gz): 6,382,507 households kept (NC 4,516,391, SC 1,866,116); 97 of 97 columns; rejected rows: none; 11.6 min
+2026-10-09 08:26  2008 main (US_Consumer_5_File_2008.csv.gz): 6,156,253 households kept (NC 4,252,381, SC 1,903,872); 97 of 97 columns; rejected rows: none; 11.6 min
+2026-10-09 08:26  2009 main (US_Consumer_5_File_2009.csv.gz): 6,432,193 households kept (NC 4,577,802, SC 1,854,391); 97 of 97 columns; rejected rows: none; 11.8 min
+2026-10-09 08:26  2007 main (US_Consumer_5_File_2007.csv.gz): 6,338,201 households kept (NC 4,387,393, SC 1,950,808); 97 of 97 columns; rejected rows: none; 11.9 min
+2026-10-09 08:39  2011 main (US_Consumer_5_File_2011.csv.gz): 6,461,294 households kept (NC 4,479,268, SC 1,982,026); 97 of 97 columns; rejected rows: none; 12.6 min
+2026-10-09 08:39  2012 main (US_Consumer_5_File_2012.csv.gz): 6,656,799 households kept (NC 4,627,818, SC 2,028,981); 97 of 97 columns; rejected rows: none; 13.1 min
+2026-10-09 08:41  2014 main (US_Consumer_5_File_2014.csv.gz): 7,363,788 households kept (NC 5,205,927, SC 2,157,861); 97 of 97 columns; rejected rows: none; 15.0 min
+2026-10-09 08:42  2013 main (US_Consumer_5_File_2013.csv.gz): 7,550,827 households kept (NC 5,279,508, SC 2,271,319); 97 of 97 columns; rejected rows: none; 15.3 min
+2026-10-09 08:54  2015 main (US_Consumer_5_File_2015.csv.gz): 7,191,930 households kept (NC 4,954,311, SC 2,237,619); 97 of 97 columns; rejected rows: none; 14.9 min
+2026-10-09 08:55  2016 main (US_Consumer_5_File_2016.csv.gz): 7,733,064 households kept (NC 5,290,248, SC 2,442,816); 97 of 97 columns; rejected rows: none; 15.3 min
+2026-10-09 08:57  2017 main (US_Consumer_5_File_2017.csv.gz): 8,185,180 households kept (NC 5,625,111, SC 2,560,069); 97 of 97 columns; rejected rows: none; 16.1 min
+2026-10-09 08:58  2018 main (US_Consumer_5_File_2018.csv.gz): 8,714,501 households kept (NC 6,005,534, SC 2,708,967); 97 of 97 columns; rejected rows: none; 16.7 min
+2026-10-09 09:11  2019 main (US_Consumer_5_File_2019.csv.gz): 9,044,488 households kept (NC 6,180,010, SC 2,864,478); 97 of 97 columns; rejected rows: none; 17.7 min
+2026-10-09 09:12  2020 main (US_Consumer_5_File_2020.csv.gz): 9,388,392 households kept (NC 6,474,156, SC 2,914,236); 97 of 97 columns; rejected rows: none; 17.6 min
+2026-10-09 09:15  2021 main (US_Consumer_5_File_2021.csv.gz): 9,562,865 households kept (NC 6,700,820, SC 2,862,045); 97 of 97 columns; rejected rows: none; 17.3 min
+2026-10-09 09:15  2022 main (US_Consumer_5_File_2022.csv.gz): 9,143,006 households kept (NC 6,295,228, SC 2,847,778); 97 of 97 columns; rejected rows: none; 16.4 min
+2026-10-09 09:27  2023 main (US_Consumer_5_File_2023.csv.gz): 8,384,062 households kept (NC 5,717,477, SC 2,666,585); 86 of 86 columns; rejected rows: none; 15.2 min
+2026-10-09 09:29  2024 main (US_Consumer_5_File_2024.csv.gz): 9,244,586 households kept (NC 6,299,994, SC 2,944,592); 97 of 97 columns; rejected rows: none; 16.8 min
+2026-10-09 09:30  2023 alt (US_Consumer_5_File_2023.csv.gz): 8,384,057 households kept (NC 5,717,475, SC 2,666,582); 97 of 97 columns; rejected rows: none; 15.5 min
+2026-10-09 09:34  2025 main (US_Consumer_5_File_2025.csv.gz): 11,222,316 households kept (NC 7,844,644, SC 3,377,672); 97 of 97 columns; rejected rows: none; 19.2 min
+2026-10-09 09:40  2024 alt (US_Consumer_5_File_2024.csv.gz): 9,244,586 households kept (NC 6,299,994, SC 2,944,592); 97 of 97 columns; rejected rows: none; 13.1 min
