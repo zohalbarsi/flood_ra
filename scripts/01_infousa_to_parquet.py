@@ -1,18 +1,5 @@
-"""Step 1: convert each yearly infoUSA Consumer file to Parquet, once.
+"""Step 1: convert each yearly infoUSA Consumer file to Parquet."""
 
-Reads the raw .csv.gz in place (never modified), keeps family records whose
-address state is a study state, drops any columns listed in drop_columns in
-settings.yaml (none by default), and writes
-derived/infousa_parquet/infousa_<year>[_<version>].parquet.
-Every column stays text so codes keep their leading zeros. Several files run
-at once (parallel_files in paths.yaml). Each file records the settings it was
-converted with (study states, dropped columns, delimiter, encoding); re-runs
-skip files whose settings still match and redo the rest (--overwrite redoes
-all). Rows the CSV reader rejects are counted by error
-type, never stored. Each .gz is also checked with `gzip -t` alongside the
-conversion, because DuckDB silently reads a truncated file up to the cut.
-One line per file goes to output/logs/infousa_conversion.txt.
-"""
 from __future__ import annotations
 
 import fnmatch

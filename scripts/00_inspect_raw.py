@@ -1,16 +1,7 @@
 """Step 0: inventory the raw data on the server WITHOUT copying any of it.
-
 Writes output/logs/data_inventory.md: every file in the infoUSA and
 flood_exposure folders with its size, plus the delimiter, header and column
 names/types of each tabular file, and the files inside each .zip.
-`python scripts/00_inspect_raw.py corelogic` inventories only the folder set
-as corelogic_raw in config/paths.yaml, into output/logs/corelogic_inventory.md.
-`python scripts/00_inspect_raw.py folder <path>` inventories any folder into
-output/logs/inventory_<folder name>.md, grouping files that differ only by
-state code or digits and showing each distinct column layout once.
-The reports hold no data values, so they are safe to commit and share; they
-are how code written elsewhere learns the schema of data that never leaves
-the server.
 """
 from __future__ import annotations
 
