@@ -8,10 +8,13 @@ Geography of each record (geo_family in settings.yaml picks the code columns):
 - county_fips: the county code itself (not taken from the tract, so a record
   with an unknown tract keeps its county). If it is unknown: the Census 2000
   county code (files up to 2017 only), else the county of the block the
-  coordinates fall in. county_source says which.
-- tract_geoid / bg_geoid: from the codes. Only when the code is unknown, the
-  geocode is rooftop level (P) and the coordinates' block does not contradict
-  the county code, they come from that block. tract_source / bg_source.
+  coordinates fall in, if that block is in the record's state. county_source
+  says which.
+- tract_geoid: from the code. Only when it is unknown, the geocode is rooftop
+  level (P) and the coordinates' block does not contradict the county code
+  (or, without one, the state code), it comes from that block. bg_geoid: from
+  the code; only when it is unknown, level P and the block lies in the
+  record's tract, from the block. tract_source / bg_source.
 - block_geoid: the block the coordinates fall in (step 03), always kept.
   Block flood measures are joined only when that block lies in the record's
   county; block_exposure_ok also requires a level-P geocode.
@@ -45,6 +48,7 @@ def merge_sql(src: str, year: int, fam: str) -> str:
     return f"""
         WITH h AS (
             SELECT *, {geo.county_fips(fam)} AS _county_code, {county_2000} AS _county_2000,
+                      norm_state("{geo.FAMILIES[fam][0]}") AS _state_code,
                       {geo.tract_geoid(fam)} AS _tract_code, {geo.bg_geoid(fam)} AS _bg_code,
                       {geo.LATITUDE} AS latitude, {geo.LONGITUDE} AS longitude,
                       coalesce(upper(trim("GE_CENSUS_LEVEL_2010")) = 'P', false) AS level_p
@@ -52,17 +56,19 @@ def merge_sql(src: str, year: int, fam: str) -> str:
         ), x AS (
             SELECT h.*, pb.block_geoid,
                    coalesce(_county_code, _county_2000) AS _county_codes,
+                   -- the block's county may stand in only if it is in the record's state
+                   pb.block_geoid IS NOT NULL AND coalesce(left(pb.block_geoid, 2) = _state_code, true) AS _xy_ok,
                    left(pb.block_geoid, 5) AS county_fips_xy,
                    left(pb.block_geoid, 11) AS tract_geoid_xy,
                    left(pb.block_geoid, 12) AS bg_geoid_xy
             FROM h LEFT JOIN point_blocks pb ON pb.latitude = h.latitude AND pb.longitude = h.longitude
         ), c AS (
             SELECT x.*,
-                   coalesce(_county_codes, county_fips_xy) AS county_fips,
+                   coalesce(_county_codes, CASE WHEN _xy_ok THEN county_fips_xy END) AS county_fips,
                    CASE WHEN _county_code IS NOT NULL THEN 'code'
                         WHEN _county_2000 IS NOT NULL THEN '2000 code'
-                        WHEN county_fips_xy IS NOT NULL THEN 'coordinates' END AS county_source,
-                   coalesce(_tract_code, CASE WHEN level_p AND coalesce(county_fips_xy = _county_codes, true)
+                        WHEN _xy_ok THEN 'coordinates' END AS county_source,
+                   coalesce(_tract_code, CASE WHEN level_p AND coalesce(county_fips_xy = _county_codes, _xy_ok)
                                               THEN tract_geoid_xy END) AS tract_geoid
             FROM x
         ), g AS (
@@ -71,10 +77,14 @@ def merge_sql(src: str, year: int, fam: str) -> str:
                         WHEN tract_geoid IS NOT NULL THEN 'coordinates' END AS tract_source,
                    coalesce(_bg_code, CASE WHEN level_p AND tract_geoid_xy = tract_geoid
                                            THEN bg_geoid_xy END) AS bg_geoid,
-                   CASE WHEN block_geoid IS NOT NULL THEN county_fips_xy = county_fips END AS block_in_county
+                   CASE WHEN block_geoid IS NOT NULL THEN coalesce(county_fips_xy = county_fips, false) END
+                       AS block_in_county,
+                   -- a plain equality key keeps the block join a hash join
+                   CASE WHEN county_fips_xy = county_fips THEN block_geoid END AS _block_join
             FROM c
         )
         SELECT g.* EXCLUDE (_county_code, _county_2000, _county_codes, _tract_code, _bg_code,
+                            _state_code, _xy_ok, _block_join,
                             latitude, longitude, level_p, block_geoid, county_fips, county_source,
                             tract_geoid, tract_source, bg_geoid, block_in_county,
                             county_fips_xy, tract_geoid_xy, bg_geoid_xy),
@@ -95,7 +105,7 @@ def merge_sql(src: str, year: int, fam: str) -> str:
         FROM g
         LEFT JOIN flood_tract t ON t.tract_geoid = g.tract_geoid
         LEFT JOIN flood_bg b ON b.bg_geoid = g.bg_geoid
-        LEFT JOIN flood_block k ON k.block_geoid = g.block_geoid AND g.block_in_county
+        LEFT JOIN flood_block k ON k.block_geoid = g._block_join
     """
 
 
@@ -234,7 +244,7 @@ def main() -> None:
         "county from 2000 code / coordinates: the county code was unknown. tract from code: share "
         "with a valid tract code. tract from coordinates: tract code unknown, filled from the "
         "block (level P, block not in another county). no tract: still unknown. BG from "
-        "coordinates: block-group code unknown, filled the same way. Last two columns, all "
+        "coordinates: block-group code unknown, filled from a level-P block in the record's tract. Last two columns, all "
         "records: the block from the coordinates lies outside the record's county (its block "
         "measures are not joined), and of those, in another state.", "",
         *table(pd.DataFrame(sources, columns=["year", "in flood counties", "county from 2000 code",

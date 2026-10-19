@@ -1,9 +1,10 @@
 """Profile the InfoCorelogic_v2 folder (corelogic_raw in config/paths.yaml):
 an earlier project's address crosswalk between infoUSA and CoreLogic.
 
-Not a pipeline step (run_all.py does not run it). Run it once on the server:
-    python scripts/inspect/infocorelogic_profile.py
-It writes output/logs/infocorelogic_profile.md, which holds no record values:
+Not a pipeline step (run_all.py does not run it). Run it on the server:
+    python scripts/inspect/infocorelogic_profile.py [folder]
+(default: corelogic_raw). It writes output/logs/profile_<folder name>.md,
+which holds no record values:
 1. Where the full CoreLogic property data (values, dwelling characteristics)
    are: the folders that the old project's code reads, and any folder under
    the home directory named like CoreLogic, with file names, sizes and
@@ -15,7 +16,8 @@ It writes output/logs/infocorelogic_profile.md, which holds no record values:
 4. The old project's code: the file paths and CoreLogic column names written
    in its .py files, and its lines about the match codes.
 It also copies the study states' crosswalk files to derived/corelogic/ as
-parquet (licensed data, stays on the server) for the merge that will follow.
+parquet, and the old code's full comments to code_notes_private.md, in
+derived/corelogic/<folder name>/ (stays on the server).
 """
 from __future__ import annotations
 
@@ -33,7 +35,6 @@ from flood_ra import db, geo, paths  # noqa: E402
 from flood_ra.inventory import section  # noqa: E402
 from flood_ra.report import mask, pct, table  # noqa: E402
 
-REPORT = paths.LOG_DIR / "infocorelogic_profile.md"
 OUT = paths.DERIVED / "corelogic"
 DATA_EXT = re.compile(r"\.(csv|gz|parquet|dta|txt|zip|feather|pkl|pickle|sas7bdat|h5)\b", re.I)
 COLUMN = re.compile(r"[A-Z0-9][A-Z0-9 _\-/&#%.()]{2,60}")
@@ -67,48 +68,88 @@ def is_path(s: str) -> bool:
     return s.startswith(("/", "~")) or ("/" in s and " " not in s) or bool(DATA_EXT.search(s))
 
 
+COLUMN_WORDS = re.compile(
+    r"\b(CODE|KEY|VALUE|YEAR|AMOUNT|DATE|NUMBER|AREA|FEET|SQUARE|SQ|BUILT|LAND|TAX|SALE|MORTGAGE|"
+    r"PRICE|BEDROOMS?|BATH\w*|STOR\w+|UNITS?|ADDRESS|ZIP|FIPS|LATITUDE|LONGITUDE|INDICATOR|TYPE|"
+    r"ASSESSED|MARKET|APPRAISED|IMPROVEMENT|LOT|ACRES|CONSTRUCTION|CONDITION|QUALITY|ROOMS?|GARAGE|"
+    r"POOL|HEATING|AIR|FIREPLACE|BASEMENT|ROOF|FOUNDATION|STYLE|EFFECTIVE|TOTAL|CALCULATED|SITUS|"
+    r"PARCEL|LEGAL|APN|EDITION|RECORDING|DOCUMENT|LOAN|RATE|BUILDING|LIVING|GROSS|ADJUSTED|"
+    r"OCCUPANCY|INDICATORS?|COUNT|FLAG|DESCRIPTION|FRONT|DEPTH|ZONING|HISTORIC)\b")
+QUOTED = re.compile(r"""(['"])(.*?)\1""")
+
+
 def is_column(s: str) -> bool:
-    return (" " in s.strip() and COLUMN.fullmatch(s.strip()) is not None
-            and not ADDRESS.match(s.strip()))
+    """An upper-case literal that reads like a property-data column name."""
+    s = s.strip()
+    return (COLUMN.fullmatch(s) is not None and not re.search(r"\d", s)
+            and COLUMN_WORDS.search(s) is not None)
 
 
-def code_notes(root: Path) -> tuple[list[str], list[str]]:
-    """Report lines about the old scripts, and the absolute paths they name."""
+def redact(line: str) -> str:
+    """A code line safe to publish: comment dropped, quoted text kept only if it
+    is 'match', an identifier or a column-like name, digit runs of 3+ as 999."""
+    code = line.split("#", 1)[0].rstrip()
+    def keep(m):
+        t = m.group(2)
+        ok = t == "match" or re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]{0,40}", t) or is_column(t)
+        return m.group(1) + (t if ok else "...") + m.group(1)
+    return re.sub(r"\d{3,}", "999", QUOTED.sub(keep, code))
+
+
+MATCH_SET = re.compile(r"""\[\s*['"]match['"]\s*\]\s*=[^=]|\bmatch\s*=\s*\d""")
+
+
+def code_notes(root: Path, private: Path) -> tuple[list[str], list[str]]:
+    """Report lines about the old scripts (safe to publish), and the absolute
+    paths they name. The full comment and 'match' lines go to `private`, a
+    file under derived/ that stays on the server."""
     scripts = sorted(p for p in root.rglob("*.py") if ".ipynb_checkpoints" not in p.parts)
     lines = ["## 4. The old project's code", "",
              f"{len(scripts)} Python files (Jupyter checkpoints skipped). For each: the file paths "
-             "and the upper-case column names written in it; for scripts about merging or "
-             "matching, also its comments and the lines that mention `match`.", ""]
+             "and the column-like upper-case names written in it, and in scripts about merging or "
+             "matching, the lines that set a match code with 3 lines before each (comments dropped, "
+             "other quoted text shown as ..., digit runs as 999). The full comments and lines "
+             f"mentioning `match` are in `{private}` on the server only.", ""]
     found_paths: list[str] = []
+    full = [f"# Comments and 'match' lines of the old scripts in {root} (server only, do not commit)", ""]
     for p in scripts:
-        src = p.read_text(errors="replace")
-        lits = strings(src)
+        rel = p.relative_to(root)
+        try:
+            src = p.read_text(errors="replace")
+            lits = strings(src)
+        except (OSError, ValueError, RecursionError) as e:
+            lines += [f"### `{rel}`", "", f"unreadable: {first_line(e)}", ""]
+            continue
         path_lits = sorted({s.strip() for s in lits if is_path(s)})
         cols = sorted({s.strip() for s in lits if is_column(s)})
         found_paths += [s for s in path_lits if s.startswith(("/", "~"))]
-        lines += [f"### `{p.relative_to(root)}` ({len(src.splitlines())} lines)", ""]
+        lines += [f"### `{rel}` ({len(src.splitlines())} lines)", ""]
         if path_lits:
-            lines += ["paths:", ""] + [f"- `{s}`" for s in path_lits[:80]] + [""]
+            lines += ["paths:", ""] + [f"- `{re.sub(r'[0-9]{5,}', '99999', s)}`" for s in path_lits[:80]] + [""]
         if cols:
-            lines += ["upper-case names (CoreLogic columns, mostly):", "",
-                      "`" + "`, `".join(cols[:300]) + "`", ""]
+            lines += ["column-like names:", "", "`" + "`, `".join(cols[:300]) + "`", ""]
         if re.search("merge|match", p.name, re.I):
-            keep = [(i, ln.rstrip()) for i, ln in enumerate(src.splitlines(), 1)
-                    if ("match" in ln.lower() or ln.strip().startswith("#")) and not ADDRESS.search(ln.strip())]
-            if keep:
-                lines += ["```"] + [f"{i:5d}  {ln[:160]}" for i, ln in keep[:200]] + ["```", ""]
-                if len(keep) > 200:
-                    lines += [f"... {len(keep) - 200} more lines", ""]
+            src_lines = src.splitlines()
+            full += [f"## {rel}", "", "```"] + [
+                f"{i:5d}  {ln.rstrip()}" for i, ln in enumerate(src_lines, 1)
+                if "match" in ln.lower() or ln.strip().startswith("#")] + ["```", ""]
+            sets = [i for i, ln in enumerate(src_lines) if MATCH_SET.search(ln.split("#", 1)[0])]
+            shown = sorted({j for i in sets for j in range(max(0, i - 3), i + 1)})
+            if shown:
+                lines += ["```"] + [f"{j + 1:5d}  {redact(src_lines[j])[:160]}" for j in shown[:240]] + ["```", ""]
+    private.write_text("\n".join(full))
     return lines, found_paths
 
 
 # ------------------------------------------------- 2. folders the code points to
 def existing_dir(s: str) -> Path | None:
-    """Deepest existing folder on the way to a path string (cut at its first {})."""
+    """The folder a path string names (cut at its first {}), or its parent if
+    that is all that exists; None otherwise (no climbing to broad folders)."""
     p = Path(os.path.expanduser(s.split("{", 1)[0]))
-    while not p.exists() and p != p.parent:
-        p = p.parent
-    return p if p.exists() else None
+    for q in (p, p.parent):
+        if q.exists():
+            return q
+    return None
 
 
 def listing(con, title: str, d: Path, cap: int = 20_000) -> list[str]:
@@ -122,27 +163,36 @@ def listing(con, title: str, d: Path, cap: int = 20_000) -> list[str]:
     entries = sorted(d.iterdir())
     out = [f"## {title}", "", f"`{d}`: more than {cap:,} files; top level only ({len(entries)} entries):", ""]
     for e in entries[:150]:
-        out.append(f"- `{e.name}`" + ("/" if e.is_dir() else f" ({e.stat().st_size / 1e9:.2f} GB)"))
+        try:
+            tag = "/" if e.is_dir() else f" ({e.stat().st_size / 1e9:.2f} GB)"
+        except OSError:
+            tag = " (broken link)" if e.is_symlink() else " (unreadable)"
+        out.append(f"- `{e.name}`" + tag)
     return out + [""]
 
 
-def named_like_corelogic(roots: list[Path], max_depth: int = 6, max_dirs: int = 200_000) -> list[Path]:
-    hits, seen = [], 0
+def named_like_corelogic(roots: list[Path], skip: set[Path], max_depth: int = 6,
+                         max_dirs: int = 100_000) -> tuple[list[Path], list[str]]:
+    """Folders named like CoreLogic under each root (each root has its own
+    budget of folders visited); also returns notes on searches cut short."""
+    hits, notes = [], []
     for root in roots:
-        base = len(root.parts)
-        for d, subdirs, files in os.walk(root):
+        base, seen = len(root.parts), 0
+        for d, subdirs, files in os.walk(root, onerror=lambda e: None):
             seen += 1
             depth = len(Path(d).parts) - base
-            subdirs[:] = [s for s in subdirs if not s.startswith(".") and s not in {".venv", "__pycache__"}
-                          and depth < max_depth]
+            subdirs[:] = [s for s in subdirs if not s.startswith(".") and depth < max_depth
+                          and s not in {".venv", "__pycache__", "miniconda3", "anaconda3"}
+                          and Path(d, s).resolve() not in skip]
             if re.search("corelogic|histproperty|core_logic", Path(d).name, re.I):
                 hits.append(Path(d))
                 subdirs[:] = []
             elif any(re.search("corelogic|histproperty", f, re.I) for f in files):
                 hits.append(Path(d))
-            if seen > max_dirs:
-                return hits
-    return hits
+            if seen >= max_dirs:
+                notes.append(f"search in `{root}` stopped after {seen:,} folders")
+                break
+    return hits, notes
 
 
 def folders(con, root: Path, code_paths: list[str]) -> list[str]:
@@ -156,16 +206,19 @@ def folders(con, root: Path, code_paths: list[str]) -> list[str]:
         if d.is_file():
             d = d.parent
         # skip the crosswalk folder itself and folders too broad to list
-        if d == root or root in d.parents or d in home.parents or d == home or len(d.parts) < 3:
+        if (d == root or root in d.parents or d in root.parents or d in home.parents or d == home
+                or d.parent == home or len(d.parts) < 4):
             continue
         candidates[d] = s
     roots = [home] + [Path(r) for r in ("/project", "/data", "/scratch") if Path(r).is_dir()]
-    hits = [h.resolve() for h in named_like_corelogic(roots)]
+    hits, cut = named_like_corelogic(roots, {paths.REPO_ROOT.resolve(), paths.DERIVED.resolve()})
+    hits = [h.resolve() for h in hits]
     hits = [h for h in hits if h != root and root not in h.parents]
     lines = ["## 1. Folders the old code reads, and folders named like CoreLogic", "",
              f"Paths in the code that exist on this server ({len(candidates)} folders). Folders named "
              f"like CoreLogic or HistProperty under {', '.join(f'`{r}`' for r in roots)} (6 levels "
-             f"deep; the crosswalk folder excluded): {len(hits)}.", ""]
+             f"deep; the crosswalk folder, this repo and derived/ excluded): {len(hits)}."
+             + ("" if not cut else " Note: " + "; ".join(cut) + "."), ""]
     lines += [f"- `{h}`" for h in hits[:50]] + [""]
     todo = list(dict.fromkeys(list(candidates) + hits))
     for d in todo[:12]:
@@ -312,21 +365,33 @@ def match_stats(con, root: Path) -> list[str]:
 
 
 def main() -> None:
-    if paths.CORELOGIC_RAW is None:
-        sys.exit("set corelogic_raw in config/paths.yaml to the InfoCorelogic_v2 folder")
-    paths.require(paths.CORELOGIC_RAW)
-    root = paths.CORELOGIC_RAW.resolve()
+    folder = Path(sys.argv[1]).expanduser() if len(sys.argv) > 1 else paths.CORELOGIC_RAW
+    if folder is None:
+        sys.exit("give the folder, or set corelogic_raw in config/paths.yaml")
+    paths.require(folder)
+    root = folder.resolve()
+    global OUT
+    OUT = paths.DERIVED / "corelogic" / root.name
     OUT.mkdir(parents=True, exist_ok=True)
+    report = paths.LOG_DIR / f"profile_{root.name}.md"
     con = db.connect(threads=paths.THREADS * paths.PARALLEL)
     t0 = time.time()
-    lines = ["# InfoCorelogic_v2 profile (counts, schemas and code notes; no record values)", ""]
+    lines = [f"# {root.name} profile (counts, schemas and code notes; no record values)", "",
+             f"Folder `{root}`.", ""]
 
-    notes, code_paths = code_notes(root)
+    def save() -> None:
+        report.write_text("\n".join(lines + [f"_{(time.time() - t0) / 60:.1f} minutes so far_"]))
+
+    try:
+        notes, code_paths = code_notes(root, OUT / "code_notes_private.md")
+    except Exception as e:  # noqa: BLE001
+        notes, code_paths = ["## 4. The old project's code", "", f"failed: {first_line(e)}", ""], []
     print("1. folders", flush=True)
     try:
         lines += folders(con, root, code_paths)
     except Exception as e:  # noqa: BLE001
         lines += ["## 1. Folders", "", f"failed: {first_line(e)}", ""]
+    save()
     print("2. crosswalk coverage", flush=True)
     lines += ["## 2. Crosswalk coverage, study states", ""]
     for state in geo.study_states():
@@ -334,14 +399,14 @@ def main() -> None:
             lines += coverage(con, root, state)
         except Exception as e:  # noqa: BLE001
             lines += [f"### {state}", "", f"failed: {first_line(e)}", ""]
+        save()
     try:
         lines += match_stats(con, root)
     except Exception as e:  # noqa: BLE001
         lines += ["## 3. stats/match.csv", "", f"could not read: {first_line(e)}", ""]
-    lines += notes  # the code notes go last: they are long
-    lines.insert(2, f"Folder `{root}`. {(time.time() - t0) / 60:.1f} minutes.\n")
-    REPORT.write_text("\n".join(lines))
-    print(f"wrote {REPORT}")
+    lines += notes
+    save()
+    print(f"wrote {report}")
 
 
 if __name__ == "__main__":

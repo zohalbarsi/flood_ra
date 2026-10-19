@@ -36,5 +36,5 @@ flood_files:
 #   als2010: GE_CENSUS_STATE_2010, GE_ALS_COUNTY_CODE_2010, GE_ALS_CENSUS_TRACT_2010, GE_ALS_CENSUS_BG_2010
 # output/logs/merge_report.md shows the match rate under both. First real run:
 # als2010 matches 100% of tracts and block groups in every year; census matches
-# ~43% in 2007-2017 (another tract vintage) and is empty from 2018.
+# ~46% in 2007-2017 (Census 2000 tracts) and is empty from 2018.
 geo_family: als2010

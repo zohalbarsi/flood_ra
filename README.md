@@ -77,17 +77,20 @@ When a pull changes `requirements.txt`, run `pip install -r requirements.txt` fi
 - **04** gives each record a county, tract and block group, then left-joins
   the tract, block-group and block flood measures. Added columns:
   - `county_fips`: the county code. If that is unknown, the Census 2000
-    county code (files up to 2017), else the county of the record's block.
-  - `tract_geoid`, `bg_geoid`: from the codes. They come from the block only
-    if the code is unknown, the geocode is level `P` and the block is not in
-    another county.
+    county code (files up to 2017), else the county of the record's block if
+    it is in the record's state.
+  - `tract_geoid`: from the code. It comes from the block only if the code
+    is unknown, the geocode is level `P` and the block is not in another
+    county (or state). `bg_geoid`: from the code, else from a level-`P`
+    block that lies in the record's tract.
   - `*_source`: which of these each value came from.
   - `block_geoid`: the block containing the coordinates. Block measures are
     joined only if that block lies in the record's county.
   - `block_exposure_ok`: the block measures are joined and the geocode is
     level `P`.
   - `*_xy`: the county, tract and block group taken from the coordinates
-    alone, for checks.
+    alone, for checks. Also numeric `latitude`/`longitude`, `level_p` and
+    `block_in_county`.
   - `in_flood_counties`, plus `in_flood_counties_code` and
     `in_flood_counties_xy` (codes only, coordinates only). Outside the flood
     counties the flood measures are missing, not zero.
@@ -124,7 +127,7 @@ Raw inputs are read-only: the pipeline never writes into `infousa_raw` or
   subfamilies alike. `PRIMARY_FAMILY_IND = 1` keeps one row per household
   (`LOCATIONID`); no household filter is applied yet.
 - **Study area: North and South Carolina.** The flood data cover 34 NC
-  counties only (34-38% of NC family records are in them). SC records are
+  counties only (about 37-38% of NC family records are in them). SC records are
   kept as a comparison group and so that families moving between NC and SC
   are followed; they have no flood measures (`in_flood_counties` is false).
 - **Merge key: `GE_ALS_*_2010` columns**, the Census 2010 geography in the
@@ -133,11 +136,12 @@ Raw inputs are read-only: the pipeline never writes into `infousa_raw` or
   - Tract `000000` and county `000` mean unknown and are treated as missing.
   - The county is read from its own code, not from the tract, so a record
     with an unknown tract keeps its county.
-  - The `GE_CENSUS_*` columns are Census 2000 geography, hence the ~43%
-    tract match in 2007-2017. In 2018 they copy the 2010 codes, in 2019 they
-    disagree with them, in 2020-2024 they are empty, and in 2025 they hold
-    other content. The 2000 county code is therefore a fallback only up to
-    2017.
+  - `GE_CENSUS_COUNTY`, `GE_CENSUS_TRACT` and `GE_CENSUS_BG` are Census 2000
+    geography (about 46% tract match in 2007-2017). The tract and BG columns
+    are empty from 2018 (in 2025 the tract column holds other content). The
+    county column copies the 2010 code in 2018, disagrees with it in 2019, is
+    empty in 2020-2024 and holds other content in 2025, so it is a fallback
+    only up to 2017.
 - **Block level: built** from household coordinates (no block code in
   infoUSA). 99.7-99.9% of family records in the flood counties fall in a block.
   For geocode level `P` the block lies in the household's census tract

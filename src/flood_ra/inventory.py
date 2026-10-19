@@ -1,5 +1,7 @@
 """Schema-only descriptions of data files: names, sizes, column names and
-types, never values, so the output is safe to commit."""
+types, never values, so the output is safe to commit. A CSV header the sniffer
+cannot confirm (all columns text) could be a data row, so its names are
+masked unless they look like identifiers (see safe_name)."""
 from __future__ import annotations
 
 import re
@@ -8,6 +10,17 @@ from collections import Counter
 from pathlib import Path
 
 TEXT = {".csv", ".txt", ".tsv", ".dat", ".gz"}
+
+
+_IDENT = re.compile(r"[A-Za-z][A-Za-z0-9]*(_[A-Za-z0-9]+)+")
+
+
+def safe_name(name: str) -> str:
+    """A column name from an unconfirmed header: as is if it looks like an
+    identifier with an underscore (no 5+ digit runs), else its pattern."""
+    if _IDENT.fullmatch(name) and not re.search(r"\d{5}", name):
+        return name
+    return re.sub("[A-Za-z]", "A", re.sub(r"\d", "9", name))
 
 
 def describe(con, f: Path) -> list[str]:
@@ -32,8 +45,15 @@ def describe(con, f: Path) -> list[str]:
                 "SELECT Delimiter, HasHeader, Columns "
                 f"FROM sniff_csv('{f.as_posix()}', sample_size=20000)"
             ).fetchone()
-            out = [f"  delimiter {delim!r}, header {header}, {len(cols)} columns", ""]
-            return out + [f"  - `{c['name']}` ({c['type']})" for c in cols]
+            # A header is certain only if some column has a non-text type (the first
+            # row then failed to parse as data). Otherwise the "names" may be a data
+            # row, so only identifier-like names with an underscore are shown as
+            # they are; the rest are shown as patterns (A = letter, 9 = digit).
+            confirmed = header and any(c["type"] != "VARCHAR" for c in cols)
+            note = "" if confirmed or not header else " (header not confirmed: all text)"
+            out = [f"  delimiter {delim!r}, header {header}{note}, {len(cols)} columns", ""]
+            return out + [f"  - `{c['name'] if confirmed or not header else safe_name(c['name'])}` ({c['type']})"
+                          for c in cols]
     except Exception as e:  # noqa: BLE001
         # first line only: later lines of a CSV error can quote a data row
         return [f"  - could not read: {type(e).__name__}: {str(e).splitlines()[0][:150]}"]
