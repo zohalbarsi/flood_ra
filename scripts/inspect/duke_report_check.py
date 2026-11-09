@@ -30,10 +30,9 @@ from pathlib import Path
 
 import numpy as np
 import pandas as pd
-import yaml
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "src"))
-from flood_ra import census, db, paths  # noqa: E402
+from flood_ra import census, db, ethnicity, paths  # noqa: E402
 from flood_ra.report import pct, table  # noqa: E402
 
 STATE = "NC"
@@ -41,7 +40,6 @@ WINDOW = (2007, 2018)
 REPORT = paths.LOG_DIR / "duke_report_check.md"
 FIGURES = paths.REPO_ROOT / "output" / "figures"
 WORK = paths.DERIVED / "duke_check"
-GROUPS_FILE = paths.REPO_ROOT / "config" / "ethnicity_groups.yaml"
 
 # CPI-U annual averages (BLS), to express FIND income in 2018 dollars as the report does
 CPI = {2007: 207.342, 2008: 215.303, 2009: 214.537, 2010: 218.056, 2011: 224.939, 2012: 229.594,
@@ -123,7 +121,7 @@ def build_panel(con, files: dict[int, Path]) -> tuple[str, dict]:
                    {num.format('FIND_DIV_1000')} AS inc, {num.format('OWNER_RENTER_STATUS')} AS own,
                    {num.format('CHILDRENHHCOUNT')} AS kids, {num.format('MARITAL_STATUS')} AS marital,
                    {num.format('LENGTH_OF_RESIDENCE')} AS lor,
-                   nullif(nullif(upper(trim(Ethnicity_Code_1)), ''), '00') AS eth,
+                   {ethnicity.sql_broad('Ethnicity_Code_1')} AS eth,
                    nullif(upper(trim(HEAD_HH_AGE_CODE)), '') AS age
             FROM {src} WHERE {where}
             QUALIFY row_number() OVER (PARTITION BY trim(FAMILYID) ORDER BY prim DESC, addr NULLS LAST) = 1
@@ -191,17 +189,16 @@ def regressions(con) -> tuple[pd.DataFrame, list[str]]:
     Asian) and the head's first known age code (base: under 25), from
     cross-product sums computed in DuckDB. Also the mean of y implied by the
     report's coefficients at our regressor means, a check on units."""
-    groups = {str(k).upper(): str(v).lower()
-              for k, v in (yaml.load(GROUPS_FILE.read_text(), Loader=yaml.BaseLoader) or {}).items()}
-    con.register("grp_df", pd.DataFrame({"code": list(groups), "grp": list(groups.values())}))
-    race = "CASE WHEN eth IS NULL THEN 'missing' ELSE coalesce(g.grp, 'other') END"
+    # eth: broad group of the first placed code (ethnicity.py); pacific, mena, native, other -> other
+    race = ("CASE WHEN eth IS NULL THEN 'missing' "
+            "WHEN eth IN ('black', 'hispanic', 'white', 'asian') THEN eth ELSE 'other' END")
     dummies = [f"({race} = '{r}')::DOUBLE AS r_{r}" for r in ("black", "hispanic", "white", "other", "missing")]
     dummies += [f"(age = '{c}')::DOUBLE AS a_{c}" for c in "BCDEFGHIJKLM"]
     con.sql(f"""CREATE OR REPLACE TABLE reg AS
         SELECT n_years::DOUBLE AS y_app, (n_addr - 1)::DOUBLE AS y_mov, n_years >= 4 AND n_addr >= 1 AS mov_sample,
                1.0 AS const,
                log_inc, own, kids, marital, lor, {", ".join(dummies)}
-        FROM fam LEFT JOIN grp_df g ON g.code = fam.eth
+        FROM fam
         WHERE log_inc IS NOT NULL AND own IS NOT NULL AND kids IS NOT NULL AND marital IS NOT NULL
               AND lor IS NOT NULL AND age IS NOT NULL""")
     cols = [c for c, _ in REGRESSORS]
@@ -248,7 +245,6 @@ def regressions(con) -> tuple[pd.DataFrame, list[str]]:
     df = pd.DataFrame(rows, columns=["regressor", "report: appearances", "ours: appearances (SE)",
                                      "report: moves", "ours: moves = addresses - 1 (SE)"])
     con.sql("DROP TABLE reg")
-    con.unregister("grp_df")
     return df, notes
 
 
@@ -456,10 +452,12 @@ def main() -> None:
         "## 1b. The report's regressions", "",
         f"All family records {WINDOW[0]}-{WINDOW[1]}, one row per FAMILYID with complete data. Regressors are "
         "means over the family's years (log income in $1,000 of 2018, CPI-U; own/rent and marital codes "
-        "0-9 as numbers; CHILDRENHHCOUNT; LENGTH_OF_RESIDENCE), race from the first known "
-        "Ethnicity_Code_1 grouped with config/ethnicity_groups.yaml (base: Asian; the report's race "
+        "0-9 as numbers; CHILDRENHHCOUNT; LENGTH_OF_RESIDENCE), race from the first placed "
+        "Ethnicity_Code_1 (code table config/ethnicity_codes.csv and the categories in "
+        "src/flood_ra/ethnicity.py; Asian = East + South Asian, the base; Other = Pacific, MENA, "
+        "American Indian and Other; Race missing = no placed code in any year; the report's race "
         "variable may come from its wru estimates and has Mixed, Native American and Pacific Islander "
-        "groups we cannot form), and the head's first known age code (earliest year with a code A-M; "
+        "groups), and the head's first known age code (earliest year with a code A-M; "
         "base: under 25; J = 65+ inferred). Moves: unique addresses - 1, families seen 4+ times with an "
         "address. The report's scatter counts addresses, but its moves coefficients imply a mean outcome "
         "well below 1, so its regression must count moves. OLS, classical SEs. Last row: the mean "

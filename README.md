@@ -107,10 +107,12 @@ When a pull changes `requirements.txt`, run `pip install -r requirements.txt` fi
   person (owner share plotted with the unknown codes 4-6 counted as renters,
   as in the Duke DPRC report), and draws tract maps of race and homeownership next to ACS
   2015-2019. It downloads the Census tables once and keeps them in
-  `benchmarks/` (public data). Ethnicity codes are grouped with
-  `config/ethnicity_groups.yaml` if it exists; otherwise the groups are
-  inferred from county patterns and must be checked against the Data Axle
-  Ethnicity-Cultural Coding Datacard.
+  `benchmarks/` (public data). Ethnicity codes get their Data Axle group
+  from the code table `config/ethnicity_codes.csv` (168 codes, every code in
+  the NC/SC files) and a category from the classification in
+  `src/flood_ra/ethnicity.py`: White, Ethnic White, Black American, Other
+  Black, Hispanic, East Asian, South Asian, Pacific, MENA, American Indian,
+  Other. Unknown codes (00, ZZ, blank) are left out of the race shares.
 
 Logs are written to `output/logs/`. Step 01 is the slow one (19 years plus 2
 alternate versions, about 275 GB compressed): expect several hours. Run it in
@@ -224,9 +226,10 @@ Raw inputs are read-only: the pipeline never writes into `infousa_raw` or
 - **Flags:** `HOUSEHOLDSTATUS` is blank in 2007-2010, `VACANT` in 2007-2008,
   `USPSNOSTATS` in 2007-2009; `VACANT = 1` falls from 1.3% to 0.1% in 2015.
 - NC and SC records move in opposite directions in 5 of 18 years.
-- **Ethnicity codes, 2018:** code `LR` (about 6% of households, Black) is
-  replaced by `Q6`-`Q9`. `config/ethnicity_groups.yaml` maps all of them to
-  Black, so the series is smooth across 2018.
+- **Ethnicity codes, 2018:** code `LR` (about 6% of NC and 7% of SC
+  households, the main Black code) is replaced by `Q6`-`Q9`. All of them
+  count as Black American, so the series is smooth across 2018. With LR as
+  Other Black instead, Black American would jump from 3.1% to 9.5% in NC in 2018.
 - **Children, 2012 and 2016:** the share of households with children steps up
   from 10% to 20% (2012) and to 30% (2016). It matches ACS (28-31%) only in
   2016-2023 and falls again in 2024-2025.

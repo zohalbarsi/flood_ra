@@ -14,12 +14,12 @@ Unit: households = primary families (PRIMARY_FAMILY_IND = 1). Variables
   median household income (nominal dollars, like infoUSA).
 - wealth: WEALTH_FINDER_SCORE ($ thousands). No state Census benchmark exists.
 - home value: ESTMTD_HOME_VAL_DIV_1000 of likely owners. Census: ACS B25077.
-- race / ethnicity: Ethnicity_Code_1 (the first person; 00 or blank =
-  missing), grouped into White, Black, Hispanic, Asian and other with
-  config/ethnicity_groups.yaml if it exists. Otherwise the groups are
-  inferred: each code goes to the race group whose county shares (ACS
-  householders) its county shares track best. Census: ACS B11001A-I (race
-  and Hispanic origin of the householder).
+- race / ethnicity: Ethnicity_Code_1 of the first person, grouped with the
+  code table config/ethnicity_codes.csv and the categories in
+  src/flood_ra/ethnicity.py (LR counts as Black American). Shares are of
+  households with a placed code: unknown codes (00, ZZ, blank) and codes no
+  rule places are left out. Census: ACS B11001A-I (race and Hispanic origin
+  of the householder).
 
 Census figures are downloaded from the Census API on the first run and kept
 in benchmarks/ (public data). The maps use the ACS 2015-2019 5-year
@@ -36,22 +36,18 @@ from pathlib import Path
 
 import numpy as np
 import pandas as pd
-import yaml
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
-from flood_ra import census, db, geo, paths, settings  # noqa: E402
+from flood_ra import census, db, ethnicity, geo, paths, settings  # noqa: E402
 from flood_ra.report import mask, pct, table  # noqa: E402
 
 REPORT = paths.LOG_DIR / "demographics.md"
 TABLES = paths.REPO_ROOT / "output" / "tables"
 FIGURES = paths.REPO_ROOT / "output" / "figures"
 PRIVATE = paths.DERIVED / "demographics"
-GROUPS_FILE = paths.REPO_ROOT / "config" / "ethnicity_groups.yaml"
 MAP_YEAR = 2017          # infoUSA year for the maps (middle of ACS 2015-2019)
 ACS5_YEAR = 2019         # ACS 2015-2019: the last 5-year release on 2010 tracts
 MIN_HH = 30              # areas with fewer infoUSA households are not shown
-MIN_CODE_SHARE = 0.002   # ethnicity codes rarer than this are grouped as other
-GROUPS = ["white", "black", "hispanic", "asian"]
 COLORS = {"NC": "#1f5fa8", "SC": "#c8611c"}
 
 HH = "trim(PRIMARY_FAMILY_IND) = '1'"
@@ -83,26 +79,37 @@ def household_sql(src: str, by: str, universe: str = HH) -> str:
 
 
 def eth_sql(src: str, by: str, universe: str = HH) -> str:
-    """Households per Ethnicity_Code_1 value (blank and 00 = missing)."""
+    """Households per Ethnicity_Code_1 value of the first person."""
     return f"""
-        SELECT {by}, coalesce(nullif(nullif(upper(trim(Ethnicity_Code_1)), ''), '00'), '(missing)') AS code,
+        SELECT {by}, coalesce(nullif(upper(trim(Ethnicity_Code_1)), ''), '{ethnicity.BLANK}') AS code,
                count(*) AS households
         FROM {src} WHERE {universe} AND upper(trim(STATE)) IN ({", ".join(f"'{s}'" for s in geo.study_states())})
         GROUP BY ALL
     """
 
 
-def derive(hh: pd.DataFrame, eth: pd.DataFrame, code_group: dict) -> pd.DataFrame:
+def classify(eth: pd.DataFrame) -> pd.DataFrame:
+    """Add each code's Data Axle group, category and broad group (see ethnicity.py)."""
+    codes = pd.Series(eth["code"].unique(), dtype=object)
+    raw = codes.where(codes != ethnicity.BLANK, "")
+    look = pd.DataFrame({"code": codes, "group": raw.map(ethnicity.group), "category": raw.map(ethnicity.category)})
+    look["broad"] = look["category"].map(ethnicity.CATEGORIES)
+    return eth.drop(columns=[c for c in ("group", "category", "broad") if c in eth]).merge(look, on="code", how="left")
+
+
+def derive(hh: pd.DataFrame, eth: pd.DataFrame) -> pd.DataFrame:
     """Shares from the counts: race groups, owners, children."""
-    eth = eth.assign(group=eth["code"].map(code_group).fillna("other"))
-    known = eth[eth["group"] != "missing"].groupby(["state", "year"])["households"].sum()
-    for g in GROUPS:
-        s = eth[eth["group"] == g].groupby(["state", "year"])["households"].sum()
-        hh = hh.merge((s / known).rename(f"{g}_share").reset_index(), on=["state", "year"], how="left")
-        hh[f"{g}_share"] = hh[f"{g}_share"].fillna(0)
-    miss = eth[eth["group"] == "missing"].groupby(["state", "year"])["households"].sum()
-    hh = hh.merge((miss / eth.groupby(["state", "year"])["households"].sum()).rename("ethnicity_missing")
-                  .reset_index(), on=["state", "year"], how="left")
+    by = ["state", "year"]
+    total = eth.groupby(by)["households"].sum()
+    placed = eth[eth["broad"].notna()]
+    n_placed = placed.groupby(by)["households"].sum().reindex(total.index)
+    out = pd.DataFrame(index=total.index)
+    for g in ethnicity.BROAD_GROUPS:
+        n = placed[placed["broad"] == g].groupby(by)["households"].sum().reindex(total.index, fill_value=0)
+        out[f"{g}_share"] = n / n_placed
+    for col, cat in (("ethnicity_unknown", ethnicity.UNKNOWN), ("ethnicity_not_placed", ethnicity.NOT_PLACED)):
+        out[col] = eth[eth["category"] == cat].groupby(by)["households"].sum().reindex(total.index, fill_value=0) / total
+    hh = hh.merge(out.reset_index(), on=by, how="left")
     hh["owner_share"] = hh["owners"] / (hh["owners"] + hh["renters"])
     hh["owner_share_duke"] = hh["owners"] / hh["status_coded"]
     hh["owner_share_reported"] = hh["owners_reported"] / (hh["owners_reported"] + hh["renters_reported"])
@@ -111,54 +118,17 @@ def derive(hh: pd.DataFrame, eth: pd.DataFrame, code_group: dict) -> pd.DataFram
     return hh
 
 
-def infer_groups(eth_county: pd.DataFrame, acs_county: pd.DataFrame | None) -> pd.DataFrame:
-    """Race group of each ethnicity code: from config/ethnicity_groups.yaml, or
-    the ACS householder group whose county shares best track the code's."""
-    totals = eth_county.groupby("code")["households"].sum()
-    share = totals / totals.sum()
-    rows = pd.DataFrame({"code": totals.index, "households": totals.values, "share": share.values})
-    if GROUPS_FILE.exists():
-        # BaseLoader keeps every key a string (safe_load reads the code NO as false)
-        given = {str(k).upper(): str(v).lower()
-                 for k, v in (yaml.load(GROUPS_FILE.read_text(), Loader=yaml.BaseLoader) or {}).items()}
-        rows["group"] = rows["code"].map(given).fillna("other")
-        rows.loc[rows["code"] == "(missing)", "group"] = "missing"
-        rows["source"] = f"{GROUPS_FILE.name}"
-        return rows
-    rows["group"], rows["source"] = "other", "too rare to infer"
-    for g in GROUPS:
-        rows[f"r_{g}"] = np.nan
-    if acs_county is None:
-        rows["source"] = "no Census county data: not inferred"
-    else:
-        c = acs_county.set_index("geoid")
-        bench = pd.DataFrame({
-            "white": c["householders_white_nh"], "black": c["householders_black"],
-            "hispanic": c["householders_hispanic"], "asian": c["householders_asian"],
-        }).div(c["householders"], axis=0)
-        known = eth_county[eth_county["code"] != "(missing)"]
-        wide = known.pivot_table(index="county", columns="code", values="households", aggfunc="sum", fill_value=0)
-        wide = wide.div(wide.sum(axis=1), axis=0)
-        wide = wide.loc[wide.index.intersection(bench.index)]
-        b = bench.loc[wide.index]
-        for i, r in rows.iterrows():
-            if r["code"] == "(missing)":
-                rows.loc[i, ["group", "source"]] = ["missing", "missing code"]
-                continue
-            if r["share"] < MIN_CODE_SHARE or r["code"] not in wide:
-                continue
-            corr = {g: np.corrcoef(wide[r["code"]], b[g])[0, 1] for g in GROUPS}
-            for g, v in corr.items():
-                rows.loc[i, f"r_{g}"] = v
-            ranked = sorted((v for v in corr.values() if not np.isnan(v)), reverse=True) + [-1, -1]
-            best = max(corr, key=lambda g: -np.inf if np.isnan(corr[g]) else corr[g])
-            # a clear match: r >= 0.4 and at least 0.15 above the next group
-            if ranked[0] >= 0.4 and ranked[0] - ranked[1] >= 0.15:
-                rows.loc[i, ["group", "source"]] = [best, "inferred from county shares"]
-            else:
-                rows.loc[i, "source"] = "no clear match"
-    rows.loc[rows["code"] == "(missing)", ["group", "source"]] = ["missing", "missing code"]
-    return rows
+def category_table(eth: pd.DataFrame) -> pd.DataFrame:
+    """Households per category by state and year. Share of placed households for
+    the categories; share of all households for Unknown and Not placed."""
+    by = ["state", "year"]
+    t = eth.groupby(by + ["category"], as_index=False)["households"].sum()
+    is_cat = t["category"].isin(list(ethnicity.CATEGORIES))
+    t = t.merge(t[is_cat].groupby(by)["households"].sum().rename("placed").reset_index(), on=by, how="left")
+    t = t.merge(t.groupby(by)["households"].sum().rename("total").reset_index(), on=by)
+    t["share"] = np.where(t["category"].isin(list(ethnicity.CATEGORIES)), t["households"] / t["placed"],
+                          t["households"] / t["total"])
+    return t.drop(columns=["placed", "total"])
 
 
 def plot_trends(state: pd.DataFrame, path: Path) -> None:
@@ -244,28 +214,28 @@ def main() -> None:
         print(f"{year}: households measured", flush=True)
     hh, eth = pd.concat(hh, ignore_index=True), pd.concat(eth, ignore_index=True)
 
-    # 2. small areas in the map year: counties (to infer ethnicity groups) and tracts (maps)
+    # 2. tracts in the map year (maps)
     map_file = files.get(MAP_YEAR)
-    acs_county, n1 = census.small_areas(ACS5_YEAR, "county", fips)
     acs_tract, n2 = census.small_areas(ACS5_YEAR, "tract", fips)
-    notes += n1 + n2
-    eth_county = tracts = None
+    notes += n2
+    tracts = None
     if map_file is not None:
         src = f"read_parquet('{map_file.as_posix()}')"
-        eth_county = con.sql(eth_sql(src, f"{geo.county_fips(fam)} AS county")).df().dropna(subset=["county"])
         tracts = con.sql(household_sql(src, f"{geo.tract_geoid(fam)} AS geoid")).df().dropna(subset=["geoid"])
-        tract_eth = con.sql(eth_sql(src, f"{geo.tract_geoid(fam)} AS geoid")).df().dropna(subset=["geoid"])
+        tract_eth = classify(con.sql(eth_sql(src, f"{geo.tract_geoid(fam)} AS geoid")).df().dropna(subset=["geoid"]))
     else:
-        notes.append(f"no infoUSA file for {MAP_YEAR}: no maps, ethnicity groups not inferred")
+        notes.append(f"no infoUSA file for {MAP_YEAR}: no maps")
 
-    # 3. ethnicity code -> group
-    # with a groups file, map every code seen in any year (codes such as Q6-Q8 start in 2018)
-    groups = infer_groups(eth.rename(columns={"state": "county"}) if GROUPS_FILE.exists() or eth_county is None
-                          else eth_county,
-                          acs_county)
-    code_group = dict(zip(groups["code"], groups["group"]))
-    eth["group"] = eth["code"].map(code_group).fillna("other")
-    hh = derive(hh, eth, code_group)
+    # 3. ethnicity code -> Data Axle group -> category -> broad group (ethnicity.py)
+    eth = classify(eth)
+    hh = derive(hh, eth)
+    cats = category_table(eth)
+    codes = eth.groupby(["code", "group", "category"], as_index=False)["households"].sum()
+    codes["broad"] = codes["category"].map(ethnicity.CATEGORIES)
+    codes["share"] = codes["households"] / codes["households"].sum()
+    codes["in_table"] = codes["code"].map(lambda c: c == ethnicity.BLANK or c in ethnicity.load_codes())
+    codes = codes.sort_values("households", ascending=False)
+    show_code = lambda v: v if v == ethnicity.BLANK else mask(v)  # noqa: E731
 
     # 4. Census state series
     acs, n3 = census.state_series(sorted(hh["year"].unique()), fips)
@@ -290,10 +260,9 @@ def main() -> None:
 
     hh = hh.sort_values(["state", "year"])
     hh.to_csv(TABLES / "demographics_state_year.csv", index=False)
-    eth_out = eth.assign(code=eth["code"].map(lambda v: v if v == "(missing)" else mask(v)))
-    eth_out.to_csv(TABLES / "ethnicity_codes_state_year.csv", index=False)
-    groups.assign(code=groups["code"].map(lambda v: v if v == "(missing)" else mask(v))).to_csv(
-        TABLES / "ethnicity_code_groups.csv", index=False)
+    eth.assign(code=eth["code"].map(show_code)).to_csv(TABLES / "ethnicity_codes_state_year.csv", index=False)
+    codes.assign(code=codes["code"].map(show_code)).to_csv(TABLES / "ethnicity_code_groups.csv", index=False)
+    cats.to_csv(TABLES / "ethnicity_categories_state_year.csv", index=False)
     plot_trends(hh, FIGURES / "demographic_trends.png")
 
     # 5. maps and tract-level comparison
@@ -302,8 +271,8 @@ def main() -> None:
         tracts = tracts[tracts["households"] >= MIN_HH].copy()
         tracts["owner_share"] = tracts["owners"] / (tracts["owners"] + tracts["renters"])
         tracts["owner_share_duke"] = tracts["owners"] / tracts["status_coded"]
-        tract_eth["group"] = tract_eth["code"].map(code_group).fillna("other")
-        te = tract_eth.pivot_table(index="geoid", columns="group", values="households", aggfunc="sum", fill_value=0)
+        te = tract_eth[tract_eth["broad"].isin(["white", "black"])].pivot_table(
+            index="geoid", columns="broad", values="households", aggfunc="sum", fill_value=0)
         for g in ("white", "black"):
             if g not in te:
                 te[g] = 0
@@ -345,13 +314,17 @@ def main() -> None:
                 out[c] = out[c].map(lambda v, k=kind: "" if pd.isna(v) else (pct(v) if k == "%" else f"{v:,.{k}f}"))
         return out.rename(columns={c: c.replace("census_", "ACS ").replace("_", " ") for c in cols})
 
-    show = groups.copy()
-    show["code"] = show["code"].map(lambda v: v if v == "(missing)" else mask(v))
-    show = show.sort_values("households", ascending=False).head(40)
-    show["share"] = show["share"].map(pct)
-    for g in GROUPS:
-        if f"r_{g}" in show:
-            show[f"r_{g}"] = show[f"r_{g}"].map(lambda v: "" if pd.isna(v) else f"{v:.2f}")
+    show = codes.head(40).assign(code=lambda d: d["code"].map(show_code), share=lambda d: d["share"].map(pct))
+    absent = codes[~codes["in_table"]]
+    absent_line = ("Codes in the data but not in the table (so not placed): " + ", ".join(
+        f"{show_code(c)} ({n:,} households)" for c, n in zip(absent["code"][:20], absent["households"][:20]))
+        + (f", and {len(absent) - 20} more" if len(absent) > 20 else "") + "."
+        if len(absent) else "Every code in the data is in the table.")
+    wide = cats.pivot_table(index=["state", "year"], columns="category", values="share", aggfunc="sum")
+    order = [c for c in [ethnicity.UNKNOWN, ethnicity.NOT_PLACED, *ethnicity.CATEGORIES] if c in wide]
+    wide = wide[order].fillna(0).map(pct).reset_index()
+    wide = wide[["year", "state", *order]]
+    wide.columns.name = None
     REPORT.write_text("\n".join([
         "# Demographics: infoUSA vs Census (aggregates only)", "",
         "Households = primary families (PRIMARY_FAMILY_IND = 1), study states. Census = ACS 1-year "
@@ -376,19 +349,30 @@ def main() -> None:
                     "median_wealth": "0", "mean_wealth": "0", "median_home_value": "0",
                     "census_median_home_value": "0"})),
         "## Race and ethnicity of the first person / householder", "",
-        "Shares of households with a known ethnicity code; ethnicity missing: share with code 00 "
-        "or blank. Census: race and Hispanic origin of the householder (white = non-Hispanic).", "",
-        *table(fmt(hh, {"ethnicity_missing": "%", "white_share": "%", "census_white_share": "%",
-                        "black_share": "%", "census_black_share": "%", "hispanic_share": "%",
-                        "census_hispanic_share": "%", "asian_share": "%", "census_asian_share": "%"})),
-        "### Ethnicity codes and their groups", "",
-        f"Most common Ethnicity_Code_1 values (all years; codes longer than 4 characters shown as "
-        f"patterns). group: from `config/{GROUPS_FILE.name}` if it exists, else inferred: r_* is "
-        f"the correlation, across counties in {MAP_YEAR}, of the code's share of households with the "
-        "ACS share of each householder group; a code goes to the best group if r >= 0.4 and at least "
-        "0.15 above the next group. "
-        "**Check the inferred groups against the Data Axle Ethnicity-Cultural Coding Datacard.**", "",
-        *table(show.drop(columns=["households"])),
+        "Ethnicity_Code_1 of the first person, grouped with the code table "
+        "`config/ethnicity_codes.csv` (the Data Axle group of each code) and the categories in "
+        "`src/flood_ra/ethnicity.py`: white = White (groups W, S; AU, NZ) + Ethnic White (groups J, "
+        "M, E; Portuguese, Basque); black = Black American (B5, LR, Q6-Q9) + Other Black (the rest "
+        "of group B); hispanic = H5; asian = East Asian (group F) + South Asian (group A). Race "
+        "shares are of households with a placed code. ethnicity unknown (00, ZZ or blank) and not "
+        "placed (codes no rule places, such as GY and MV) are shares of all households. Census: race "
+        "and Hispanic origin of the householder (white = non-Hispanic White alone; Black and Asian "
+        "alone, any origin).", "",
+        *table(fmt(hh, {"ethnicity_unknown": "%", "ethnicity_not_placed": "%", "white_share": "%",
+                        "census_white_share": "%", "black_share": "%", "census_black_share": "%",
+                        "hispanic_share": "%", "census_hispanic_share": "%", "asian_share": "%",
+                        "census_asian_share": "%"})),
+        "### Categories", "",
+        "Share of households with a placed code (Unknown and Not placed: share of all households). "
+        "LR counts as Black American: it is the main Black code until 2017, and in 2018 Data Axle "
+        "replaced it with Q6-Q9, so Black American should run smoothly through 2018. Pacific "
+        "includes the Philippines (group P), which the Census counts as Asian; the Census also "
+        "counts MENA as White.", "",
+        *table(wide),
+        "### Ethnicity codes", "",
+        "Most common Ethnicity_Code_1 values, all years (codes longer than 4 characters shown as "
+        f"patterns). {absent_line}", "",
+        *table(show[["code", "group", "category", "share"]]),
         f"## Tracts, {MAP_YEAR} (infoUSA) vs ACS {ACS5_YEAR - 4}-{ACS5_YEAR}", "",
         f"Tracts with at least {MIN_HH} infoUSA households. r: correlation across tracts; means are "
         "unweighted tract means.", "",

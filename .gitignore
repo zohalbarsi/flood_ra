@@ -33,3 +33,5 @@ Thumbs.db
 # Aggregate tables and public Census benchmarks are safe to commit
 !output/tables/*.csv
 !benchmarks/*.csv
+# The ethnicity code table (codebook metadata, no records)
+!config/ethnicity_codes.csv
