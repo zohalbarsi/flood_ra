@@ -1,158 +1,159 @@
-code,households,share,group,source
-(missing),12055930,0.10754332397167544,missing,ethnicity_groups.yaml
-A4,8,7.136293855168398e-08,other,ethnicity_groups.yaml
-A7,346030,0.003086714703379901,asian,ethnicity_groups.yaml
-A8,2434,2.1712174054349853e-05,other,ethnicity_groups.yaml
-AF,1281,1.14269905355884e-05,asian,ethnicity_groups.yaml
-AL,4282,3.819701285978886e-05,white,ethnicity_groups.yaml
-AM,33888,0.00030229340770493337,white,ethnicity_groups.yaml
-AO,5036,4.492296981828507e-05,black,ethnicity_groups.yaml
-AT,255116,0.0022757284289439267,white,ethnicity_groups.yaml
-AU,1876,1.6734609090369896e-05,white,ethnicity_groups.yaml
-AZ,793,7.0738512839356755e-06,white,ethnicity_groups.yaml
-B3,211,1.8821975043006651e-06,other,ethnicity_groups.yaml
-B5,3032438,0.027050460831973936,black,ethnicity_groups.yaml
-BA,1093,9.749961479623826e-06,white,ethnicity_groups.yaml
-BD,280,2.4977028493089395e-06,asian,ethnicity_groups.yaml
-BE,45299,0.0004040837191815916,white,ethnicity_groups.yaml
-BF,538,4.799157617600748e-06,black,ethnicity_groups.yaml
-BG,16899,0.00015074528732311347,white,ethnicity_groups.yaml
-BI,103,9.187978338529313e-07,black,ethnicity_groups.yaml
-BJ,417,3.719793172006528e-06,black,ethnicity_groups.yaml
-BT,173,1.5432235461801662e-06,asian,ethnicity_groups.yaml
-BW,207,1.8465160350248232e-06,black,ethnicity_groups.yaml
-BY,20537,0.00018319758362949175,white,ethnicity_groups.yaml
-C3,10854,9.682166687999726e-05,other,ethnicity_groups.yaml
-C5,75,6.690275489220373e-07,other,ethnicity_groups.yaml
-CD,734,6.547549612117006e-06,black,ethnicity_groups.yaml
-CF,396,3.5324654583083576e-06,black,ethnicity_groups.yaml
-CG,601,5.36114075869526e-06,black,ethnicity_groups.yaml
-CH,18648,0.00016634700976397537,white,ethnicity_groups.yaml
-CI,3540,3.157810030912016e-05,black,ethnicity_groups.yaml
-CM,608,5.423583329927983e-06,black,ethnicity_groups.yaml
-CN,462884,0.004129095306069711,asian,ethnicity_groups.yaml
-CS,46124,0.000411443022219734,white,ethnicity_groups.yaml
-CZ,174062,0.0015526969762729023,white,ethnicity_groups.yaml
-DE,5360909,0.04782127744352121,white,ethnicity_groups.yaml
-DJ,332,2.9615619498948853e-06,black,ethnicity_groups.yaml
-DK,303652,0.0027086873771369935,white,ethnicity_groups.yaml
-DZ,625,5.575229574350312e-06,white,ethnicity_groups.yaml
-E5,44970472,0.4011531287470282,white,ethnicity_groups.yaml
-EE,10817,9.649161328919571e-05,white,ethnicity_groups.yaml
-EG,16425,0.0001465170332139262,white,ethnicity_groups.yaml
-ET,33661,0.0003002684843235293,black,ethnicity_groups.yaml
-FI,53611,0.0004782298123367913,white,ethnicity_groups.yaml
-FR,2514797,0.022432912972619904,white,ethnicity_groups.yaml
-GA,136,1.2131699553786278e-06,black,ethnicity_groups.yaml
-GE,1225,1.092744996572661e-05,white,ethnicity_groups.yaml
-GH,21646,0.00019309027098621896,black,ethnicity_groups.yaml
-GM,2558,2.2818299601900954e-05,black,ethnicity_groups.yaml
-GN,329,2.934800847938004e-06,black,ethnicity_groups.yaml
-GQ,528,4.7099539444111435e-06,black,ethnicity_groups.yaml
-GR,190897,0.0017028713600876022,white,ethnicity_groups.yaml
-GW,1431,1.2765045633432473e-05,black,ethnicity_groups.yaml
-H3,7846,6.998920198456407e-05,other,ethnicity_groups.yaml
-H5,3957256,0.03530017709516035,hispanic,ethnicity_groups.yaml
-HR,20918,0.0001865962435780157,white,ethnicity_groups.yaml
-HU,262213,0.002339036275806589,white,ethnicity_groups.yaml
-ID,1748,1.559280207354295e-05,asian,ethnicity_groups.yaml
-IE,6547776,0.058408567042273894,white,ethnicity_groups.yaml
-IM,489,4.362059618971684e-06,white,ethnicity_groups.yaml
-IN,559902,0.004994531502620621,asian,ethnicity_groups.yaml
-IQ,937,8.358384177865988e-06,white,ethnicity_groups.yaml
-IS,725,6.4672663062463615e-06,white,ethnicity_groups.yaml
-IT,2115938,0.01887494418414664,white,ethnicity_groups.yaml
-J4,1890452,0.016863526238863513,white,ethnicity_groups.yaml
-JP,103511,0.0009233561415529202,asian,ethnicity_groups.yaml
-K5,152619,0.0013614175398524323,asian,ethnicity_groups.yaml
-K8,653,5.824999859281205e-06,other,ethnicity_groups.yaml
-KE,24665,0.00022002085992216068,black,ethnicity_groups.yaml
-KG,235,2.096286319955717e-06,asian,ethnicity_groups.yaml
-KH,18274,0.00016301079238668415,asian,ethnicity_groups.yaml
-KM,116,1.034762608999418e-06,black,ethnicity_groups.yaml
-KW,48,4.2817763131010395e-07,white,ethnicity_groups.yaml
-KZ,312,2.7831546035156754e-06,asian,ethnicity_groups.yaml
-LA,20823,0.00018574880868271447,asian,ethnicity_groups.yaml
-LB,111,9.901607724046154e-07,white,ethnicity_groups.yaml
-LK,2346,2.092718173028133e-05,asian,ethnicity_groups.yaml
-LR,3126157,0.027886468736739594,black,ethnicity_groups.yaml
-LS,131,1.1685681187838253e-06,black,ethnicity_groups.yaml
-LT,33383,0.00029778862220885833,white,ethnicity_groups.yaml
-LU,1466,1.3077258489596092e-05,white,ethnicity_groups.yaml
-LV,12472,0.00011125482120207534,white,ethnicity_groups.yaml
-LY,69,6.155053450082744e-07,white,ethnicity_groups.yaml
-MA,1204,1.074012225202844e-05,white,ethnicity_groups.yaml
-MD,954,8.510030422288315e-06,white,ethnicity_groups.yaml
-MG,22,1.9624808101713098e-07,black,ethnicity_groups.yaml
-MK,333,2.970482317213846e-06,white,ethnicity_groups.yaml
-ML,613,5.4681851665227855e-06,black,ethnicity_groups.yaml
-MM,6669,5.9489929650147566e-05,asian,ethnicity_groups.yaml
-MN,503,4.486944761437131e-06,asian,ethnicity_groups.yaml
-MR,206,1.8375956677058627e-06,black,ethnicity_groups.yaml
-MT,427,3.8089968451961328e-06,white,ethnicity_groups.yaml
-MV,489,4.362059618971684e-06,asian,ethnicity_groups.yaml
-MW,774,6.904364304875426e-06,black,ethnicity_groups.yaml
-MY,609,5.432503697246943e-06,asian,ethnicity_groups.yaml
-MZ,78,6.957886508789189e-07,black,ethnicity_groups.yaml
-N3,104785,0.0009347206895172758,other,ethnicity_groups.yaml
-NA,208,1.8554364023437837e-06,other,ethnicity_groups.yaml
-NE,980,8.741959972581289e-06,black,ethnicity_groups.yaml
-NG,46529,0.00041505577098391305,black,ethnicity_groups.yaml
-NL,1573063,0.014032299775865958,white,ethnicity_groups.yaml
-NO,217478,0.0019399836437928913,white,ethnicity_groups.yaml
-NP,1615,1.4406393220121206e-05,asian,ethnicity_groups.yaml
-NR,2,1.7840734637920996e-08,other,ethnicity_groups.yaml
-NZ,197,1.7573123618352183e-06,white,ethnicity_groups.yaml
-O8,107,9.544793031287733e-07,other,ethnicity_groups.yaml
-P4,50828,0.0004534044300881242,other,ethnicity_groups.yaml
-PG,3,2.6761101956881497e-08,other,ethnicity_groups.yaml
-PH,120287,0.0010730042236958015,asian,ethnicity_groups.yaml
-PK,23289,0.00020774643449127106,asian,ethnicity_groups.yaml
-PL,588211,0.005247058181053074,white,ethnicity_groups.yaml
-PT,215294,0.0019205015615682815,white,ethnicity_groups.yaml
-Q6,1787915,0.01594885853507926,black,ethnicity_groups.yaml
-Q7,533223,0.004756545022918074,black,ethnicity_groups.yaml
-Q8,341109,0.0030428175758032967,black,ethnicity_groups.yaml
-Q9,919569,0.008202893255129186,black,ethnicity_groups.yaml
-QA,336,2.9972434191707275e-06,white,ethnicity_groups.yaml
-RO,49015,0.0004372318041388488,white,ethnicity_groups.yaml
-RU,262133,0.0023383226464210724,white,ethnicity_groups.yaml
-RW,14260,0.00012720443796837672,black,ethnicity_groups.yaml
-S3,10254348,0.09147255077644795,white,ethnicity_groups.yaml
-SA,582,5.19165377963501e-06,white,ethnicity_groups.yaml
-SC,4,3.568146927584199e-08,other,ethnicity_groups.yaml
-SD,783,6.9846476107460706e-06,black,ethnicity_groups.yaml
-SE,693534,0.00618657802818795,white,ethnicity_groups.yaml
-SI,19544,0.00017433965888176398,white,ethnicity_groups.yaml
-SK,61741,0.0005507523986399401,white,ethnicity_groups.yaml
-SL,2963,2.643104836607996e-05,black,ethnicity_groups.yaml
-SN,4967,4.43074644732768e-05,black,ethnicity_groups.yaml
-SO,394,3.5146247236704365e-06,black,ethnicity_groups.yaml
-SR,6,5.352220391376299e-08,other,ethnicity_groups.yaml
-SY,4811,4.291588717151896e-05,white,ethnicity_groups.yaml
-SZ,14347,0.00012798050992512627,black,ethnicity_groups.yaml
-T4,16,1.4272587710336796e-07,other,ethnicity_groups.yaml
-T5,324,2.8901990113432014e-06,other,ethnicity_groups.yaml
-TD,1040,9.277182011718918e-06,black,ethnicity_groups.yaml
-TG,496,4.424502190204407e-06,black,ethnicity_groups.yaml
-TH,20289,0.00018098533253438955,asian,ethnicity_groups.yaml
-TJ,40,3.5681469275841996e-07,asian,ethnicity_groups.yaml
-TM,93,8.295941606633264e-07,asian,ethnicity_groups.yaml
-TN,1544,1.377304714047501e-05,white,ethnicity_groups.yaml
-TO,77,6.868682835599584e-07,other,ethnicity_groups.yaml
-TR,26886,0.00023983299573757198,white,ethnicity_groups.yaml
-TZ,562,5.0132464332558005e-06,black,ethnicity_groups.yaml
-UA,56213,0.0005014406081007265,white,ethnicity_groups.yaml
-UG,1744,1.555712060426711e-05,black,ethnicity_groups.yaml
-UZ,225,2.0070826467661122e-06,asian,ethnicity_groups.yaml
-VN,257663,0.002298448604505319,asian,ethnicity_groups.yaml
-VU,15,1.3380550978440748e-07,other,ethnicity_groups.yaml
-W4,4902381,0.04373103925749289,white,ethnicity_groups.yaml
-WS,261,2.3282158702486903e-06,other,ethnicity_groups.yaml
-X5,108,9.633996704477338e-07,other,ethnicity_groups.yaml
-YE,85,7.582312221116424e-07,white,ethnicity_groups.yaml
-Z8,529,4.718874311730104e-06,other,ethnicity_groups.yaml
-ZA,728,6.494027408203243e-06,other,ethnicity_groups.yaml
-ZM,645,5.753636920729522e-06,black,ethnicity_groups.yaml
-ZW,7104,6.337028943389539e-05,black,ethnicity_groups.yaml
-ZZ,11561,0.00010312836657450233,other,ethnicity_groups.yaml
+code,group,category,households,broad,share,in_table
+E5,W,White,44970472,white,0.4011531287470282,True
+S3,W,White,10254348,white,0.09147255077644795,True
+(blank),,Unknown,7973757,,0.0711288413521325,True
+IE,W,White,6547776,white,0.058408567042273894,True
+DE,W,White,5360909,white,0.04782127744352121,True
+W4,W,White,4902381,white,0.04373103925749289,True
+00,Z,Unknown,4082173,,0.036414482619542936,True
+H5,H,Hispanic,3957256,hispanic,0.03530017709516035,True
+LR,B,Black American,3126157,black,0.027886468736739594,True
+B5,B,Black American,3032438,black,0.027050460831973936,True
+FR,W,White,2514797,white,0.022432912972619904,True
+IT,M,Ethnic White,2115938,white,0.01887494418414664,True
+J4,J,Ethnic White,1890452,white,0.016863526238863513,True
+Q6,B,Black American,1787915,black,0.01594885853507926,True
+NL,W,White,1573063,white,0.014032299775865958,True
+Q9,B,Black American,919569,black,0.008202893255129186,True
+SE,S,White,693534,white,0.00618657802818795,True
+PL,E,Ethnic White,588211,white,0.005247058181053074,True
+IN,A,South Asian,559902,asian,0.004994531502620621,True
+Q7,B,Black American,533223,black,0.004756545022918074,True
+CN,F,East Asian,462884,asian,0.004129095306069711,True
+A7,I,MENA,346030,mena,0.003086714703379901,True
+Q8,B,Black American,341109,black,0.0030428175758032967,True
+DK,S,White,303652,white,0.0027086873771369935,True
+HU,E,Ethnic White,262213,white,0.002339036275806589,True
+RU,E,Ethnic White,262133,white,0.0023383226464210724,True
+VN,F,East Asian,257663,asian,0.002298448604505319,True
+AT,W,White,255116,white,0.0022757284289439267,True
+NO,S,White,217478,white,0.0019399836437928913,True
+PT,H,Ethnic White,215294,white,0.0019205015615682815,True
+GR,M,Ethnic White,190897,white,0.0017028713600876022,True
+CZ,E,Ethnic White,174062,white,0.0015526969762729023,True
+K5,F,East Asian,152619,asian,0.0013614175398524323,True
+PH,P,Pacific,120287,pacific,0.0010730042236958015,True
+N3,N,American Indian,104785,native,0.0009347206895172758,True
+JP,F,East Asian,103511,asian,0.0009233561415529202,True
+SK,E,Ethnic White,61741,white,0.0005507523986399401,True
+UA,E,Ethnic White,56213,white,0.0005014406081007265,True
+FI,S,White,53611,white,0.0004782298123367913,True
+P4,I,MENA,50828,mena,0.0004534044300881242,True
+RO,E,Ethnic White,49015,white,0.0004372318041388488,True
+NG,B,Other Black,46529,black,0.00041505577098391305,True
+CS,E,Ethnic White,46124,white,0.000411443022219734,True
+BE,W,White,45299,white,0.0004040837191815916,True
+AM,C,Other,33888,other,0.00030229340770493337,True
+ET,B,Other Black,33661,black,0.0003002684843235293,True
+LT,E,Ethnic White,33383,white,0.00029778862220885833,True
+TR,W,White,26886,white,0.00023983299573757198,True
+KE,B,Other Black,24665,black,0.00022002085992216068,True
+PK,A,South Asian,23289,asian,0.00020774643449127106,True
+GH,B,Other Black,21646,black,0.00019309027098621896,True
+HR,E,Ethnic White,20918,white,0.0001865962435780157,True
+LA,F,East Asian,20823,asian,0.00018574880868271447,True
+BY,E,Ethnic White,20537,white,0.00018319758362949175,True
+TH,F,East Asian,20289,asian,0.00018098533253438955,True
+SI,E,Ethnic White,19544,white,0.00017433965888176398,True
+CH,W,White,18648,white,0.00016634700976397537,True
+KH,F,East Asian,18274,asian,0.00016301079238668415,True
+BG,E,Ethnic White,16899,white,0.00015074528732311347,True
+EG,I,MENA,16425,mena,0.0001465170332139262,True
+SZ,B,Other Black,14347,black,0.00012798050992512627,True
+RW,B,Other Black,14260,black,0.00012720443796837672,True
+LV,E,Ethnic White,12472,white,0.00011125482120207534,True
+ZZ,Z,Unknown,11561,,0.00010312836657450233,True
+C3,B,Other Black,10854,black,9.682166687999726e-05,True
+EE,E,Ethnic White,10817,white,9.649161328919571e-05,True
+H3,P,Pacific,7846,pacific,6.998920198456407e-05,True
+ZW,B,Other Black,7104,black,6.337028943389539e-05,True
+MM,F,East Asian,6669,asian,5.9489929650147566e-05,True
+AO,B,Other Black,5036,black,4.492296981828507e-05,True
+SN,B,Other Black,4967,black,4.43074644732768e-05,True
+SY,I,MENA,4811,mena,4.291588717151896e-05,True
+AL,E,Ethnic White,4282,white,3.819701285978886e-05,True
+CI,B,Other Black,3540,black,3.157810030912016e-05,True
+SL,B,Other Black,2963,black,2.643104836607996e-05,True
+GM,B,Other Black,2558,black,2.2818299601900954e-05,True
+A8,B,Other Black,2434,black,2.1712174054349853e-05,True
+LK,A,South Asian,2346,asian,2.092718173028133e-05,True
+AU,X,White,1876,white,1.6734609090369896e-05,True
+ID,F,East Asian,1748,asian,1.559280207354295e-05,True
+UG,B,Other Black,1744,black,1.555712060426711e-05,True
+NP,A,South Asian,1615,asian,1.4406393220121206e-05,True
+TN,I,MENA,1544,mena,1.377304714047501e-05,True
+LU,W,White,1466,white,1.3077258489596092e-05,True
+GW,B,Other Black,1431,black,1.2765045633432473e-05,True
+AF,A,South Asian,1281,asian,1.14269905355884e-05,True
+GE,C,Other,1225,other,1.092744996572661e-05,True
+MA,I,MENA,1204,mena,1.074012225202844e-05,True
+BA,E,Ethnic White,1093,white,9.749961479623826e-06,True
+TD,B,Other Black,1040,black,9.277182011718918e-06,True
+NE,B,Other Black,980,black,8.741959972581289e-06,True
+MD,E,Ethnic White,954,white,8.510030422288315e-06,True
+IQ,I,MENA,937,mena,8.358384177865988e-06,True
+AZ,C,Other,793,other,7.0738512839356755e-06,True
+SD,B,Other Black,783,black,6.9846476107460706e-06,True
+MW,B,Other Black,774,black,6.904364304875426e-06,True
+CD,B,Other Black,734,black,6.547549612117006e-06,True
+ZA,B,Other Black,728,black,6.494027408203243e-06,True
+IS,S,White,725,white,6.4672663062463615e-06,True
+K8,W,White,653,white,5.824999859281205e-06,True
+ZM,B,Other Black,645,black,5.753636920729522e-06,True
+DZ,I,MENA,625,mena,5.575229574350312e-06,True
+ML,B,Other Black,613,black,5.4681851665227855e-06,True
+MY,F,East Asian,609,asian,5.432503697246943e-06,True
+CM,B,Other Black,608,black,5.423583329927983e-06,True
+CG,B,Other Black,601,black,5.36114075869526e-06,True
+SA,I,MENA,582,mena,5.19165377963501e-06,True
+TZ,B,Other Black,562,black,5.0132464332558005e-06,True
+BF,B,Other Black,538,black,4.799157617600748e-06,True
+Z8,B,Other Black,529,black,4.718874311730104e-06,True
+GQ,B,Other Black,528,black,4.7099539444111435e-06,True
+MN,F,East Asian,503,asian,4.486944761437131e-06,True
+TG,B,Other Black,496,black,4.424502190204407e-06,True
+IM,W,White,489,white,4.362059618971684e-06,True
+MV,X,Not placed,489,,4.362059618971684e-06,True
+MT,M,Ethnic White,427,white,3.8089968451961328e-06,True
+BJ,B,Other Black,417,black,3.719793172006528e-06,True
+CF,B,Other Black,396,black,3.5324654583083576e-06,True
+SO,B,Other Black,394,black,3.5146247236704365e-06,True
+QA,I,MENA,336,mena,2.9972434191707275e-06,True
+MK,E,Ethnic White,333,white,2.970482317213846e-06,True
+DJ,B,Other Black,332,black,2.9615619498948853e-06,True
+GN,B,Other Black,329,black,2.934800847938004e-06,True
+T5,F,East Asian,324,asian,2.8901990113432014e-06,True
+KZ,C,Other,312,other,2.7831546035156754e-06,True
+BD,A,South Asian,280,asian,2.4977028493089395e-06,True
+WS,P,Pacific,261,pacific,2.3282158702486903e-06,True
+KG,C,Other,235,other,2.096286319955717e-06,True
+UZ,C,Other,225,other,2.0070826467661122e-06,True
+B3,H,Ethnic White,211,white,1.8821975043006651e-06,True
+NA,B,Other Black,208,black,1.8554364023437837e-06,True
+BW,B,Other Black,207,black,1.8465160350248232e-06,True
+MR,B,Other Black,206,black,1.8375956677058627e-06,True
+NZ,X,White,197,white,1.7573123618352183e-06,True
+BT,A,South Asian,173,asian,1.5432235461801662e-06,True
+GA,B,Other Black,136,black,1.2131699553786278e-06,True
+LS,B,Other Black,131,black,1.1685681187838253e-06,True
+KM,B,Other Black,116,black,1.034762608999418e-06,True
+LB,I,MENA,111,mena,9.901607724046154e-07,True
+X5,B,Other Black,108,black,9.633996704477338e-07,True
+O8,A,South Asian,107,asian,9.544793031287733e-07,True
+BI,B,Other Black,103,black,9.187978338529313e-07,True
+TM,C,Other,93,other,8.295941606633264e-07,True
+YE,I,MENA,85,mena,7.582312221116424e-07,True
+MZ,B,Other Black,78,black,6.957886508789189e-07,True
+TO,P,Pacific,77,pacific,6.868682835599584e-07,True
+C5,C,Other,75,other,6.690275489220373e-07,True
+LY,I,MENA,69,mena,6.155053450082744e-07,True
+KW,I,MENA,48,mena,4.2817763131010395e-07,True
+TJ,C,Other,40,other,3.5681469275841996e-07,True
+MG,B,Other Black,22,black,1.9624808101713098e-07,True
+T4,A,South Asian,16,asian,1.4272587710336796e-07,True
+VU,P,Pacific,15,pacific,1.3380550978440748e-07,True
+A4,N,American Indian,8,native,7.136293855168398e-08,True
+SR,X,Other,6,other,5.352220391376299e-08,True
+SC,B,Other Black,4,black,3.568146927584199e-08,True
+PG,P,Pacific,3,pacific,2.6761101956881497e-08,True
+NR,P,Pacific,2,pacific,1.7840734637920996e-08,True

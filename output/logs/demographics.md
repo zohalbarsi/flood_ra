@@ -2,8 +2,6 @@
 
 Households = primary families (PRIMARY_FAMILY_IND = 1), study states. Census = ACS 1-year state estimates (no 2020 release). Figures: `output/figures/`; full tables: `output/tables/`. Census tables cached in `benchmarks/`.
 
-Notes: ACS 1-year 2025: not available (HTTP 404: <!doctype html><html lang="en"><head><title>HTTP Status 404 ? Not Found</title><style type="text/css">body {font-family:Tahoma,Arial,sans-serif;} h1,)
-
 ## Owners and renters (primary families)
 
 owner share duke (plotted): OWNER_RENTER_STATUS 7-9 among households coded 0-9, so the unknowns (4-6) count as renters, as in the Duke DPRC report's Table 6; it moves with Data Axle's recoding of unknowns (2015, 2019, 2025). owner share: 7-9 among households with 0-3 or 7-9; reported: 9 among 9 and 0; status unknown: share coded 4-6 or missing.
@@ -28,7 +26,7 @@ owner share duke (plotted): OWNER_RENTER_STATUS 7-9 among households coded 0-9, 
  2022    NC  4,294,086            73.9%       83.2%                91.4%          11.2%           66.7%      4,299,266
  2023    NC  4,035,079            76.3%       85.3%                93.1%          10.6%           66.3%      4,392,669
  2024    NC  4,312,416            76.4%       85.1%                92.8%          10.3%           66.8%      4,496,359
- 2025    NC  4,751,488            64.4%       82.7%                92.3%          22.1%                               
+ 2025    NC  4,751,488            64.4%       82.7%                92.3%          22.1%           67.0%      4,539,531
  2007    SC  1,736,485            66.2%       89.4%                99.6%          25.9%           70.0%      1,702,564
  2008    SC  1,687,212            67.9%       90.0%                99.7%          24.6%           70.6%      1,702,300
  2009    SC  1,648,722            68.5%       88.8%                99.8%          22.8%           70.1%      1,730,232
@@ -47,7 +45,7 @@ owner share duke (plotted): OWNER_RENTER_STATUS 7-9 among households coded 0-9, 
  2022    SC  2,022,720            77.3%       86.6%                92.3%          10.7%           72.0%      2,136,080
  2023    SC  1,943,310            79.8%       88.5%                93.6%           9.8%           72.4%      2,177,733
  2024    SC  2,096,749            80.7%       88.8%                93.4%           9.1%           72.3%      2,222,890
- 2025    SC  2,215,109            71.6%       88.8%                93.1%          19.4%                               
+ 2025    SC  2,215,109            71.6%       88.8%                93.1%          19.4%           71.8%      2,296,350
 ```
 
 ## Children
@@ -72,7 +70,7 @@ owner share duke (plotted): OWNER_RENTER_STATUS 7-9 among households coded 0-9, 
  2022    NC          30.7%              29.0%            0.53                0.53
  2023    NC          29.3%              28.4%            0.54                0.53
  2024    NC          25.8%              28.6%            0.48                0.52
- 2025    NC          22.9%                               0.41                    
+ 2025    NC          22.9%              28.0%            0.41                0.52
  2007    SC          10.3%              33.0%            0.14                0.62
  2008    SC          10.6%              32.8%            0.15                0.63
  2009    SC          11.6%              32.3%            0.16                0.62
@@ -91,7 +89,7 @@ owner share duke (plotted): OWNER_RENTER_STATUS 7-9 among households coded 0-9, 
  2022    SC          28.9%              28.0%            0.50                0.52
  2023    SC          27.0%              28.4%            0.49                0.52
  2024    SC          23.6%              27.8%            0.43                0.52
- 2025    SC          21.8%                               0.38                    
+ 2025    SC          21.8%              27.7%            0.38                0.50
 ```
 
 ## Income, wealth and home value (nominal dollars)
@@ -118,7 +116,7 @@ infoUSA income is top-coded at $500,000 (share top-coded shown); wealth has no C
  2022    NC        53,000            67,481     0.4%     1,474,000   1,563,915           187,000               280,600
  2023    NC        56,000            70,804     0.5%     1,539,000   1,617,318           195,000               308,600
  2024    NC        59,000            73,958     0.6%     1,577,000   1,666,886           220,000               333,000
- 2025    NC        53,000                       0.0%     5,185,000   5,082,669           245,000                      
+ 2025    NC        53,000            77,638     0.0%     5,185,000   5,082,669           245,000               342,800
  2007    SC        43,000            43,329     0.3%     2,669,000   2,831,369           123,000               133,900
  2008    SC        45,000            44,625     0.5%     2,713,000   2,885,459           128,000               138,700
  2009    SC        50,000            42,442     0.4%     2,781,000   2,956,912           146,000               137,500
@@ -137,101 +135,147 @@ infoUSA income is top-coded at $500,000 (share top-coded shown); wealth has no C
  2022    SC        52,000            64,115     0.1%     1,471,000   1,554,099           173,000               254,600
  2023    SC        57,000            67,804     0.2%     1,551,000   1,641,739           189,000               272,900
  2024    SC        59,000            72,350     0.2%     1,571,000   1,653,680           191,000               299,500
- 2025    SC        52,000                       0.0%     5,240,000   5,147,050           210,000                      
+ 2025    SC        52,000            73,672     0.0%     5,240,000   5,147,050           210,000               306,200
 ```
 
 ## Race and ethnicity of the first person / householder
 
-Shares of households with a known ethnicity code; ethnicity missing: share with code 00 or blank. Census: race and Hispanic origin of the householder (white = non-Hispanic).
+Ethnicity_Code_1 of the first person, grouped with the code table `config/ethnicity_codes.csv` (the Data Axle group of each code) and the categories in `src/flood_ra/ethnicity.py`: white = White (groups W, S; AU, NZ) + Ethnic White (groups J, M, E; Portuguese, Basque); black = Black American (B5, LR, Q6-Q9) + Other Black (the rest of group B); hispanic = H5; asian = East Asian (group F) + South Asian (group A). Race shares are of households with a placed code. ethnicity unknown (00, ZZ or blank) and not placed (codes no rule places, such as GY and MV) are shares of all households. Census: race and Hispanic origin of the householder (white = non-Hispanic White alone; Black and Asian alone, any origin).
 
 ```
- year state ethnicity missing white share ACS white share black share ACS black share hispanic share ACS hispanic share asian share ACS asian share
- 2007    NC             39.1%       87.0%           71.1%        8.2%           20.8%           2.9%               4.8%        1.7%            1.5%
- 2008    NC             34.7%       86.9%           71.1%        8.2%           20.8%           3.0%               4.9%        1.7%            1.4%
- 2009    NC             31.3%       86.5%           70.8%        8.6%           20.9%           3.0%               4.8%        1.7%            1.5%
- 2010    NC             25.8%       86.3%           69.9%        8.6%           21.0%           3.1%               5.4%        1.8%            1.7%
- 2011    NC             21.2%       86.3%           69.9%        8.4%           21.1%           3.2%               5.5%        1.9%            1.7%
- 2012    NC             13.7%       85.8%           69.6%        8.7%           20.9%           3.4%               5.6%        1.9%            1.9%
- 2013    NC              4.2%       84.8%           69.5%        9.2%           20.9%           3.8%               5.7%        2.1%            1.9%
- 2014    NC              4.1%       84.6%           68.6%        9.3%           21.3%           3.8%               6.0%        2.1%            2.0%
- 2015    NC              4.2%       84.8%           68.5%        8.9%           21.2%           3.9%               6.2%        2.2%            2.1%
- 2016    NC              4.2%       84.5%           68.7%        9.0%           20.9%           4.1%               6.1%        2.2%            2.1%
- 2017    NC              4.3%       84.1%           68.0%        9.0%           21.1%           4.3%               6.3%        2.4%            2.3%
- 2018    NC              3.6%       82.9%           67.4%        9.8%           21.3%           4.6%               6.5%        2.5%            2.5%
- 2019    NC              3.7%       82.9%           67.2%        9.7%           21.4%           4.7%               6.5%        2.5%            2.4%
- 2020    NC              3.7%       82.6%                        9.6%                           5.0%                           2.7%                
- 2021    NC              3.7%       82.0%           65.5%        9.7%           20.6%           5.3%               6.7%        2.8%            2.5%
- 2022    NC              3.8%       81.8%           65.2%        9.5%           20.8%           5.6%               7.1%        2.9%            2.6%
- 2023    NC              3.9%       81.8%           64.6%        9.4%           20.6%           5.7%               7.8%        3.0%            2.9%
- 2024    NC              3.8%       81.3%           63.8%        9.5%           20.4%           5.9%               8.4%        3.1%            3.1%
- 2025    NC              3.9%       80.3%                        9.9%                           6.4%                           3.2%                
- 2007    SC             39.3%       85.8%           68.6%       11.3%           26.8%           1.8%               2.6%        1.1%            1.1%
- 2008    SC             35.2%       85.9%           69.1%       11.0%           26.4%           1.9%               2.6%        1.1%            0.9%
- 2009    SC             30.1%       85.8%           68.6%       11.1%           26.6%           1.9%               2.8%        1.1%            1.1%
- 2010    SC             24.6%       85.6%           68.6%       11.2%           26.0%           2.0%               3.1%        1.1%            1.1%
- 2011    SC             20.4%       85.4%           68.1%       11.2%           26.3%           2.0%               3.4%        1.2%            1.1%
- 2012    SC             13.2%       85.2%           68.2%       11.3%           26.0%           2.1%               3.5%        1.2%            1.0%
- 2013    SC              4.1%       84.7%           67.8%       11.6%           26.4%           2.3%               3.6%        1.3%            1.1%
- 2014    SC              4.1%       84.8%           68.3%       11.4%           25.7%           2.3%               3.6%        1.3%            1.2%
- 2015    SC              4.2%       84.7%           67.7%       11.3%           26.3%           2.5%               3.8%        1.4%            1.1%
- 2016    SC              4.2%       84.4%           67.8%       11.5%           26.0%           2.6%               3.7%        1.4%            1.3%
- 2017    SC              4.2%       84.3%           67.7%       11.5%           25.7%           2.7%               4.0%        1.4%            1.3%
- 2018    SC              3.5%       83.4%           67.7%       12.0%           25.7%           2.9%               4.0%        1.5%            1.2%
- 2019    SC              3.5%       83.4%           67.4%       12.0%           25.8%           3.0%               3.9%        1.5%            1.4%
- 2020    SC              3.6%       83.2%                       11.8%                           3.2%                           1.6%                
- 2021    SC              3.6%       83.0%           66.3%       11.8%           24.6%           3.4%               4.3%        1.6%            1.3%
- 2022    SC              3.7%       83.0%           66.1%       11.6%           24.4%           3.6%               4.7%        1.7%            1.5%
- 2023    SC              3.7%       83.1%           65.9%       11.4%           24.2%           3.7%               5.2%        1.7%            1.6%
- 2024    SC              3.6%       82.9%           65.2%       11.4%           23.7%           3.8%               5.6%        1.7%            1.7%
- 2025    SC              3.7%       82.2%                       11.6%                           4.2%                           1.8%                
+ year state ethnicity unknown ethnicity not placed white share ACS white share black share ACS black share hispanic share ACS hispanic share asian share ACS asian share
+ 2007    NC             39.1%                 0.0%       86.9%           71.1%        8.3%           20.8%           2.9%               4.8%        1.3%            1.5%
+ 2008    NC             34.7%                 0.0%       86.8%           71.1%        8.2%           20.8%           3.0%               4.9%        1.4%            1.4%
+ 2009    NC             31.3%                 0.0%       86.4%           70.8%        8.6%           20.9%           3.0%               4.8%        1.4%            1.5%
+ 2010    NC             25.8%                 0.0%       86.3%           69.9%        8.6%           21.0%           3.1%               5.4%        1.4%            1.7%
+ 2011    NC             21.2%                 0.0%       86.3%           69.9%        8.4%           21.1%           3.2%               5.5%        1.5%            1.7%
+ 2012    NC             13.7%                 0.0%       85.8%           69.6%        8.7%           20.9%           3.4%               5.6%        1.5%            1.9%
+ 2013    NC              4.2%                 0.0%       84.7%           69.5%        9.2%           20.9%           3.8%               5.7%        1.6%            1.9%
+ 2014    NC              4.1%                 0.0%       84.6%           68.6%        9.3%           21.3%           3.8%               6.0%        1.7%            2.0%
+ 2015    NC              4.3%                 0.0%       84.7%           68.5%        8.9%           21.2%           3.9%               6.2%        1.7%            2.1%
+ 2016    NC              4.3%                 0.0%       84.5%           68.7%        9.0%           20.9%           4.1%               6.1%        1.8%            2.1%
+ 2017    NC              4.3%                 0.0%       84.1%           68.0%        9.0%           21.1%           4.3%               6.3%        1.9%            2.3%
+ 2018    NC              3.7%                 0.0%       82.9%           67.4%        9.8%           21.3%           4.6%               6.5%        1.9%            2.5%
+ 2019    NC              3.7%                 0.0%       82.8%           67.2%        9.7%           21.4%           4.7%               6.5%        2.0%            2.4%
+ 2020    NC              3.7%                 0.0%       82.5%                        9.6%                           5.0%                           2.1%                
+ 2021    NC              3.8%                 0.0%       81.9%           65.5%        9.7%           20.6%           5.3%               6.7%        2.2%            2.5%
+ 2022    NC              3.8%                 0.0%       81.7%           65.2%        9.5%           20.8%           5.6%               7.1%        2.3%            2.6%
+ 2023    NC              3.9%                 0.0%       81.7%           64.6%        9.4%           20.6%           5.7%               7.8%        2.3%            2.9%
+ 2024    NC              3.8%                 0.0%       81.3%           63.8%        9.5%           20.4%           5.9%               8.4%        2.4%            3.1%
+ 2025    NC              3.9%                 0.0%       80.3%           62.5%        9.9%           20.2%           6.4%               9.1%        2.5%            3.3%
+ 2007    SC             39.3%                 0.0%       85.7%           68.6%       11.3%           26.8%           1.8%               2.6%        0.8%            1.1%
+ 2008    SC             35.2%                 0.0%       85.8%           69.1%       11.0%           26.4%           1.9%               2.6%        0.8%            0.9%
+ 2009    SC             30.2%                 0.0%       85.7%           68.6%       11.1%           26.6%           1.9%               2.8%        0.8%            1.1%
+ 2010    SC             24.6%                 0.0%       85.5%           68.6%       11.2%           26.0%           2.0%               3.1%        0.9%            1.1%
+ 2011    SC             20.4%                 0.0%       85.4%           68.1%       11.3%           26.3%           2.0%               3.4%        0.9%            1.1%
+ 2012    SC             13.2%                 0.0%       85.2%           68.2%       11.3%           26.0%           2.1%               3.5%        0.9%            1.0%
+ 2013    SC              4.1%                 0.0%       84.6%           67.8%       11.6%           26.4%           2.3%               3.6%        1.0%            1.1%
+ 2014    SC              4.1%                 0.0%       84.8%           68.3%       11.4%           25.7%           2.3%               3.6%        1.0%            1.2%
+ 2015    SC              4.2%                 0.0%       84.7%           67.7%       11.3%           26.3%           2.5%               3.8%        1.0%            1.1%
+ 2016    SC              4.2%                 0.0%       84.4%           67.8%       11.5%           26.0%           2.6%               3.7%        1.1%            1.3%
+ 2017    SC              4.2%                 0.0%       84.2%           67.7%       11.5%           25.7%           2.7%               4.0%        1.1%            1.3%
+ 2018    SC              3.5%                 0.0%       83.4%           67.7%       12.0%           25.7%           2.9%               4.0%        1.1%            1.2%
+ 2019    SC              3.5%                 0.0%       83.3%           67.4%       12.0%           25.8%           3.0%               3.9%        1.2%            1.4%
+ 2020    SC              3.6%                 0.0%       83.2%                       11.9%                           3.2%                           1.2%                
+ 2021    SC              3.6%                 0.0%       83.0%           66.3%       11.8%           24.6%           3.4%               4.3%        1.2%            1.3%
+ 2022    SC              3.7%                 0.0%       82.9%           66.1%       11.6%           24.4%           3.6%               4.7%        1.3%            1.5%
+ 2023    SC              3.7%                 0.0%       83.0%           65.9%       11.4%           24.2%           3.7%               5.2%        1.3%            1.6%
+ 2024    SC              3.6%                 0.0%       82.8%           65.2%       11.4%           23.7%           3.8%               5.6%        1.3%            1.7%
+ 2025    SC              3.7%                 0.0%       82.2%           64.5%       11.6%           22.9%           4.2%               6.6%        1.4%            1.7%
 ```
 
-### Ethnicity codes and their groups
+### Categories
 
-Most common Ethnicity_Code_1 values (all years; codes longer than 4 characters shown as patterns). group: from `config/ethnicity_groups.yaml` if it exists, else inferred: r_* is the correlation, across counties in 2017, of the code's share of households with the ACS share of each householder group; a code goes to the best group if r >= 0.4 and at least 0.15 above the next group. **Check the inferred groups against the Data Axle Ethnicity-Cultural Coding Datacard.**
+Share of households with a placed code (Unknown and Not placed: share of all households). LR counts as Black American: it is the main Black code until 2017, and in 2018 Data Axle replaced it with Q6-Q9, so Black American should run smoothly through 2018. Pacific includes the Philippines (group P), which the Census counts as Asian; the Census also counts MENA as White.
 
 ```
-     code share    group                source
-       E5 40.1%    white ethnicity_groups.yaml
-(missing) 10.8%  missing ethnicity_groups.yaml
-       S3  9.1%    white ethnicity_groups.yaml
-       IE  5.8%    white ethnicity_groups.yaml
-       DE  4.8%    white ethnicity_groups.yaml
-       W4  4.4%    white ethnicity_groups.yaml
-       H5  3.5% hispanic ethnicity_groups.yaml
-       LR  2.8%    black ethnicity_groups.yaml
-       B5  2.7%    black ethnicity_groups.yaml
-       FR  2.2%    white ethnicity_groups.yaml
-       IT  1.9%    white ethnicity_groups.yaml
-       J4  1.7%    white ethnicity_groups.yaml
-       Q6  1.6%    black ethnicity_groups.yaml
-       NL  1.4%    white ethnicity_groups.yaml
-       Q9  0.8%    black ethnicity_groups.yaml
-       SE  0.6%    white ethnicity_groups.yaml
-       PL  0.5%    white ethnicity_groups.yaml
-       IN  0.5%    asian ethnicity_groups.yaml
-       Q7  0.5%    black ethnicity_groups.yaml
-       CN  0.4%    asian ethnicity_groups.yaml
-       A7  0.3%    asian ethnicity_groups.yaml
-       Q8  0.3%    black ethnicity_groups.yaml
-       DK  0.3%    white ethnicity_groups.yaml
-       HU  0.2%    white ethnicity_groups.yaml
-       RU  0.2%    white ethnicity_groups.yaml
-       VN  0.2%    asian ethnicity_groups.yaml
-       AT  0.2%    white ethnicity_groups.yaml
-       NO  0.2%    white ethnicity_groups.yaml
-       PT  0.2%    white ethnicity_groups.yaml
-       GR  0.2%    white ethnicity_groups.yaml
-       CZ  0.2%    white ethnicity_groups.yaml
-       K5  0.1%    asian ethnicity_groups.yaml
-       PH  0.1%    asian ethnicity_groups.yaml
-       N3  0.1%    other ethnicity_groups.yaml
-       JP  0.1%    asian ethnicity_groups.yaml
-       SK  0.1%    white ethnicity_groups.yaml
-       UA  0.1%    white ethnicity_groups.yaml
-       FI  0.0%    white ethnicity_groups.yaml
-       P4  0.0%    other ethnicity_groups.yaml
-       RO  0.0%    white ethnicity_groups.yaml
+ year state Unknown Not placed White Ethnic White Black American Other Black Hispanic East Asian South Asian Pacific MENA American Indian Other
+ 2007    NC   39.1%       0.0% 81.4%         5.5%           8.1%        0.2%     2.9%       0.9%        0.4%    0.1% 0.3%            0.1%  0.0%
+ 2008    NC   34.7%       0.0% 81.2%         5.6%           8.0%        0.2%     3.0%       0.9%        0.4%    0.1% 0.4%            0.1%  0.0%
+ 2009    NC   31.3%       0.0% 80.8%         5.6%           8.4%        0.2%     3.0%       0.9%        0.5%    0.1% 0.4%            0.1%  0.0%
+ 2010    NC   25.8%       0.0% 80.6%         5.6%           8.5%        0.2%     3.1%       0.9%        0.5%    0.1% 0.4%            0.1%  0.0%
+ 2011    NC   21.2%       0.0% 80.6%         5.7%           8.3%        0.2%     3.2%       1.0%        0.5%    0.1% 0.4%            0.1%  0.0%
+ 2012    NC   13.7%       0.0% 80.1%         5.7%           8.5%        0.2%     3.4%       1.0%        0.5%    0.1% 0.4%            0.1%  0.0%
+ 2013    NC    4.2%       0.0% 79.0%         5.7%           9.0%        0.2%     3.8%       1.1%        0.5%    0.1% 0.4%            0.1%  0.0%
+ 2014    NC    4.1%       0.0% 78.9%         5.7%           9.0%        0.2%     3.8%       1.1%        0.6%    0.1% 0.4%            0.1%  0.0%
+ 2015    NC    4.3%       0.0% 78.8%         5.9%           8.7%        0.2%     3.9%       1.1%        0.6%    0.1% 0.4%            0.1%  0.0%
+ 2016    NC    4.3%       0.0% 78.5%         6.0%           8.7%        0.2%     4.1%       1.1%        0.6%    0.1% 0.5%            0.1%  0.0%
+ 2017    NC    4.3%       0.0% 78.1%         6.0%           8.8%        0.2%     4.3%       1.2%        0.7%    0.1% 0.5%            0.1%  0.0%
+ 2018    NC    3.7%       0.0% 76.9%         6.0%           9.5%        0.2%     4.6%       1.2%        0.7%    0.1% 0.5%            0.1%  0.0%
+ 2019    NC    3.7%       0.0% 76.8%         6.1%           9.4%        0.3%     4.7%       1.3%        0.7%    0.1% 0.5%            0.1%  0.0%
+ 2020    NC    3.7%       0.0% 76.3%         6.2%           9.4%        0.3%     5.0%       1.3%        0.8%    0.1% 0.5%            0.1%  0.0%
+ 2021    NC    3.8%       0.0% 75.7%         6.2%           9.4%        0.3%     5.3%       1.3%        0.8%    0.2% 0.6%            0.1%  0.0%
+ 2022    NC    3.8%       0.0% 75.3%         6.4%           9.3%        0.3%     5.6%       1.4%        0.9%    0.2% 0.6%            0.1%  0.0%
+ 2023    NC    3.9%       0.0% 75.2%         6.5%           9.1%        0.3%     5.7%       1.4%        0.9%    0.2% 0.6%            0.1%  0.0%
+ 2024    NC    3.8%       0.0% 74.8%         6.5%           9.2%        0.3%     5.9%       1.4%        1.0%    0.2% 0.6%            0.1%  0.0%
+ 2025    NC    3.9%       0.0% 73.8%         6.5%           9.5%        0.3%     6.4%       1.4%        1.0%    0.2% 0.6%            0.1%  0.0%
+ 2007    SC   39.3%       0.0% 80.4%         5.3%          11.2%        0.1%     1.8%       0.6%        0.3%    0.1% 0.2%            0.1%  0.0%
+ 2008    SC   35.2%       0.0% 80.3%         5.5%          10.9%        0.1%     1.9%       0.6%        0.3%    0.1% 0.2%            0.1%  0.0%
+ 2009    SC   30.2%       0.0% 80.2%         5.5%          11.0%        0.1%     1.9%       0.6%        0.3%    0.1% 0.2%            0.1%  0.0%
+ 2010    SC   24.6%       0.0% 80.0%         5.6%          11.1%        0.1%     2.0%       0.6%        0.3%    0.1% 0.2%            0.1%  0.0%
+ 2011    SC   20.4%       0.0% 79.8%         5.6%          11.1%        0.1%     2.0%       0.6%        0.3%    0.1% 0.2%            0.1%  0.0%
+ 2012    SC   13.2%       0.0% 79.5%         5.7%          11.2%        0.1%     2.1%       0.6%        0.3%    0.1% 0.2%            0.1%  0.0%
+ 2013    SC    4.1%       0.0% 78.9%         5.7%          11.5%        0.1%     2.3%       0.7%        0.3%    0.1% 0.3%            0.1%  0.0%
+ 2014    SC    4.1%       0.0% 79.0%         5.8%          11.3%        0.1%     2.3%       0.7%        0.3%    0.1% 0.3%            0.1%  0.0%
+ 2015    SC    4.2%       0.0% 78.7%         5.9%          11.2%        0.1%     2.5%       0.7%        0.3%    0.1% 0.3%            0.1%  0.0%
+ 2016    SC    4.2%       0.0% 78.4%         5.9%          11.4%        0.1%     2.6%       0.7%        0.3%    0.1% 0.3%            0.1%  0.0%
+ 2017    SC    4.2%       0.0% 78.2%         6.0%          11.4%        0.1%     2.7%       0.7%        0.4%    0.1% 0.3%            0.1%  0.0%
+ 2018    SC    3.5%       0.0% 77.3%         6.1%          11.9%        0.1%     2.9%       0.8%        0.4%    0.1% 0.3%            0.1%  0.0%
+ 2019    SC    3.5%       0.0% 77.1%         6.2%          11.8%        0.1%     3.0%       0.8%        0.4%    0.1% 0.3%            0.1%  0.0%
+ 2020    SC    3.6%       0.0% 76.9%         6.3%          11.7%        0.1%     3.2%       0.8%        0.4%    0.1% 0.3%            0.1%  0.0%
+ 2021    SC    3.6%       0.0% 76.5%         6.5%          11.6%        0.2%     3.4%       0.8%        0.4%    0.1% 0.3%            0.1%  0.0%
+ 2022    SC    3.7%       0.0% 76.2%         6.7%          11.5%        0.2%     3.6%       0.9%        0.4%    0.1% 0.3%            0.1%  0.0%
+ 2023    SC    3.7%       0.0% 76.2%         6.8%          11.3%        0.2%     3.7%       0.8%        0.4%    0.1% 0.3%            0.1%  0.0%
+ 2024    SC    3.6%       0.0% 75.9%         6.9%          11.2%        0.2%     3.8%       0.9%        0.5%    0.1% 0.3%            0.1%  0.0%
+ 2025    SC    3.7%       0.0% 75.2%         6.9%          11.5%        0.2%     4.2%       0.9%        0.5%    0.2% 0.4%            0.1%  0.0%
+```
+
+### Ethnicity codes
+
+Most common Ethnicity_Code_1 values, all years (codes longer than 4 characters shown as patterns). Every code in the data is in the table.
+
+```
+   code group        category share
+     E5     W           White 40.1%
+     S3     W           White  9.1%
+(blank)               Unknown  7.1%
+     IE     W           White  5.8%
+     DE     W           White  4.8%
+     W4     W           White  4.4%
+     00     Z         Unknown  3.6%
+     H5     H        Hispanic  3.5%
+     LR     B  Black American  2.8%
+     B5     B  Black American  2.7%
+     FR     W           White  2.2%
+     IT     M    Ethnic White  1.9%
+     J4     J    Ethnic White  1.7%
+     Q6     B  Black American  1.6%
+     NL     W           White  1.4%
+     Q9     B  Black American  0.8%
+     SE     S           White  0.6%
+     PL     E    Ethnic White  0.5%
+     IN     A     South Asian  0.5%
+     Q7     B  Black American  0.5%
+     CN     F      East Asian  0.4%
+     A7     I            MENA  0.3%
+     Q8     B  Black American  0.3%
+     DK     S           White  0.3%
+     HU     E    Ethnic White  0.2%
+     RU     E    Ethnic White  0.2%
+     VN     F      East Asian  0.2%
+     AT     W           White  0.2%
+     NO     S           White  0.2%
+     PT     H    Ethnic White  0.2%
+     GR     M    Ethnic White  0.2%
+     CZ     E    Ethnic White  0.2%
+     K5     F      East Asian  0.1%
+     PH     P         Pacific  0.1%
+     N3     N American Indian  0.1%
+     JP     F      East Asian  0.1%
+     SK     E    Ethnic White  0.1%
+     UA     E    Ethnic White  0.1%
+     FI     S           White  0.0%
+     P4     I            MENA  0.0%
 ```
 
 ## Tracts, 2017 (infoUSA) vs ACS 2015-2019
@@ -242,5 +286,5 @@ Tracts with at least 30 infoUSA households. r: correlation across tracts; means 
                          measure tracts    r infoUSA mean ACS mean
 owner share, unknowns as renters  3,245 0.88        72.4%    65.7%
    owner share, known codes only  3,245 0.85        86.3%    65.7%
-      Black share of Black+White  3,245 0.76        12.3%    26.7%
+      Black share of Black+White  3,245 0.76        12.4%    26.7%
 ```
