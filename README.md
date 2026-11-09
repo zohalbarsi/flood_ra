@@ -103,9 +103,10 @@ When a pull changes `requirements.txt`, run `pip install -r requirements.txt` fi
 
 - **06** compares infoUSA households (primary families) in NC and SC, year
   by year, with Census ACS state estimates. It covers owners vs renters,
-  children, income, wealth, home value and the race/ethnicity of the first
-  person (owner share plotted with the unknown codes 4-6 counted as renters,
-  as in the Duke DPRC report), and draws tract maps of race and homeownership next to ACS
+  children, income, home value and the race/ethnicity of the first person
+  (owner share plotted with the unknown codes 4-6 counted as renters, as in
+  the Duke DPRC report; wealth has no Census benchmark, so it is only in the
+  CSV table), and draws tract maps of race and homeownership next to ACS
   2015-2019. It downloads the Census tables once and keeps them in
   `benchmarks/` (public data). Ethnicity codes get their Data Axle group
   from the code table `config/ethnicity_codes.csv` (168 codes, every code in

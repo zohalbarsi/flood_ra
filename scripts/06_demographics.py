@@ -12,7 +12,8 @@ Unit: households = primary families (PRIMARY_FAMILY_IND = 1). Variables
   households) per household.
 - income: FIND_DIV_1000 ($ thousands, top-coded at 500). Census: ACS B19013
   median household income (nominal dollars, like infoUSA).
-- wealth: WEALTH_FINDER_SCORE ($ thousands). No state Census benchmark exists.
+- wealth: WEALTH_FINDER_SCORE ($ thousands). No Census benchmark exists, so it
+  is only in the CSV table, not in the figure or the report.
 - home value: ESTMTD_HOME_VAL_DIV_1000 of likely owners. Census: ACS B25077.
 - race / ethnicity: Ethnicity_Code_1 of the first person, grouped with the
   code table config/ethnicity_codes.csv and the categories in
@@ -140,13 +141,16 @@ def plot_trends(state: pd.DataFrame, path: Path) -> None:
         ("Households with children", "children_share", "census_children_share", "{:.0%}"),
         ("Children per household", "children_per_hh", "census_children_per_hh", "{:.2f}"),
         ("Median household income ($)", "median_income", "census_median_income", "{:,.0f}"),
-        ("Median wealth ($, infoUSA model)", "median_wealth", None, "{:,.0f}"),
         ("Median home value, owners ($)", "median_home_value", "census_median_home_value", "{:,.0f}"),
         ("Black share of households", "black_share", "census_black_share", "{:.0%}"),
         ("Hispanic share of households", "hispanic_share", "census_hispanic_share", "{:.0%}"),
         ("White (non-Hispanic) share", "white_share", "census_white_share", "{:.0%}"),
     ]
-    fig, axes = plt.subplots(3, 3, figsize=(15, 12))
+    ncols = 4
+    nrows = -(-len(panels) // ncols)
+    fig, axes = plt.subplots(nrows, ncols, figsize=(5 * ncols, 4.3 * nrows), squeeze=False)
+    for ax in axes.flat[len(panels):]:
+        ax.set_visible(False)
     for ax, (title, ours, cen, fmt) in zip(axes.flat, panels):
         for st, d in state.groupby("state"):
             d = d.sort_values("year")
@@ -154,6 +158,8 @@ def plot_trends(state: pd.DataFrame, path: Path) -> None:
             if cen and cen in d and d[cen].notna().any():
                 ax.plot(d["year"], d[cen], "--o", color=COLORS.get(st), ms=3, lw=1.2, label=f"{st} Census (ACS)")
         ax.set_title(title, fontsize=11)
+        # tick steps of 1, 2 or 5 (not 2.5), so whole-number labels are exact
+        ax.yaxis.set_major_locator(matplotlib.ticker.MaxNLocator(steps=[1, 2, 5, 10]))
         ax.yaxis.set_major_formatter(matplotlib.ticker.FuncFormatter(lambda v, _, f=fmt: f.format(v)))
         ax.axvline(2018.7, color="grey", lw=0.8, ls=":")
         ax.xaxis.set_major_locator(matplotlib.ticker.MaxNLocator(integer=True))
@@ -161,7 +167,7 @@ def plot_trends(state: pd.DataFrame, path: Path) -> None:
     axes.flat[0].legend(fontsize=8, loc="best")
     fig.suptitle("infoUSA households (primary families) vs Census ACS, NC and SC. "
                  "Dotted line: Hurricane Florence (Sept 2018)", fontsize=12)
-    fig.tight_layout(rect=(0, 0, 1, 0.97))
+    fig.tight_layout(rect=(0, 0, 1, 0.95))
     fig.savefig(path, dpi=130)
     plt.close(fig)
 
@@ -341,13 +347,13 @@ def main() -> None:
         "## Children", "",
         *table(fmt(hh, {"children_share": "%", "census_children_share": "%", "children_per_hh": "2",
                         "census_children_per_hh": "2"})),
-        "## Income, wealth and home value (nominal dollars)", "",
-        "infoUSA income is top-coded at $500,000 (share top-coded shown); wealth has no Census "
-        "benchmark.", "",
+        "## Income and home value (nominal dollars)", "",
+        "infoUSA income is top-coded at $500,000 (share top-coded shown). Wealth "
+        "(WEALTH_FINDER_SCORE) has no Census benchmark and is left out; it stays in "
+        "`output/tables/demographics_state_year.csv`.", "",
         *table(fmt(hh.assign(topcoded=hh["income_topcoded"] / hh["income_known"]),
                    {"median_income": "0", "census_median_income": "0", "topcoded": "%",
-                    "median_wealth": "0", "mean_wealth": "0", "median_home_value": "0",
-                    "census_median_home_value": "0"})),
+                    "median_home_value": "0", "census_median_home_value": "0"})),
         "## Race and ethnicity of the first person / householder", "",
         "Ethnicity_Code_1 of the first person, grouped with the code table "
         "`config/ethnicity_codes.csv` (the Data Axle group of each code) and the categories in "
