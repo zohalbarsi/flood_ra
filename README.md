@@ -137,6 +137,11 @@ Raw inputs are read-only: the pipeline never writes into `infousa_raw` or
 
 ## Decisions so far (config/settings.yaml)
 
+- **Years: 2007-2024** (`last_year`). The 2025 file is converted but left
+  out of every step from 03 on, because Data Axle rebuilt it: 21% more
+  records (about 560,000 new primary families at new addresses), owner codes
+  moved into unknown (NC owner share down 12 points while ACS is flat), and
+  new wealth and income models (median income down 10% while ACS rises 5%).
 - **Unit: family records.** Every row of the converted and merged files is
   one family record (one `FAMILYID` in one year): primary families and
   subfamilies alike. `PRIMARY_FAMILY_IND = 1` keeps one row per household

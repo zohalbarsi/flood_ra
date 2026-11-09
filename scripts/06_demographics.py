@@ -331,6 +331,7 @@ def main() -> None:
     wide = wide[order].fillna(0).map(pct).reset_index()
     wide = wide[["year", "state", *order]]
     wide.columns.name = None
+    recodes = ", ".join(str(y) for y in (2015, 2019, 2025) if y in set(hh["year"])) or "none in these years"
     REPORT.write_text("\n".join([
         "# Demographics: infoUSA vs Census (aggregates only)", "",
         "Households = primary families (PRIMARY_FAMILY_IND = 1), study states. Census = ACS 1-year "
@@ -340,7 +341,7 @@ def main() -> None:
         "## Owners and renters (primary families)", "",
         "owner share duke (plotted): OWNER_RENTER_STATUS 7-9 among households coded 0-9, so the "
         "unknowns (4-6) count as renters, as in the Duke DPRC report's Table 6; it moves with Data "
-        "Axle's recoding of unknowns (2015, 2019, 2025). owner share: 7-9 among households with 0-3 or "
+        f"Axle's recoding of unknowns ({recodes}). owner share: 7-9 among households with 0-3 or "
         "7-9; reported: 9 among 9 and 0; status unknown: share coded 4-6 or missing.", "",
         *table(fmt(hh, {"households": "0", "owner_share_duke": "%", "owner_share": "%", "owner_share_reported": "%",
                         "status_unknown": "%", "census_owner_share": "%", "census_households": "0"})),

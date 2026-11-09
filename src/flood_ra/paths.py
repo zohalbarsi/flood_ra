@@ -77,14 +77,20 @@ def converted_versions() -> dict[int, dict[str, Path]]:
 
 
 def chosen_files() -> dict[int, Path]:
-    """Converted file per year: the version settings.yaml prefers, else main."""
-    files = {}
+    """Converted file per year up to last_year in settings.yaml: the version
+    settings.yaml prefers, else main."""
+    files, later = {}, []
     for year, versions in converted_versions().items():
+        if settings.LAST_YEAR and year > settings.LAST_YEAR:
+            later.append(year)
+            continue
         want = settings.PREFER_VERSION.get(year, "main")
         if want in versions:
             files[year] = versions[want]
         else:
             print(f"warning: {year} has no '{want}' version; skipped")
+    if later:
+        print(f"left out (after last_year {settings.LAST_YEAR} in settings.yaml): {', '.join(map(str, later))}")
     return files
 
 

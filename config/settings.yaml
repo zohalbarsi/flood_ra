@@ -10,6 +10,10 @@ prefer_version:
   2023: alt
   2024: main
 
+# Last infoUSA year in the analysis (steps 03-06 and the checks). The 2025
+# file is converted but left out: Data Axle rebuilt it (see README).
+last_year: 2024
+
 # Keep households whose address state is one of these postal codes.
 study_states: [NC, SC]
 

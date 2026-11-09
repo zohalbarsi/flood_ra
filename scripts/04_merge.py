@@ -208,7 +208,8 @@ def main() -> None:
 
     lv = pd.DataFrame(levels, columns=["year", "level", "records", "tract_code", "found_t", "same_t",
                                        "found_b", "same_b"])
-    lv["period"] = pd.cut(lv["year"], [0, 2017, 2019, 9999], labels=["2007-2017", "2018-2019", "2020-2025"])
+    last = f"2020-{max(2020, int(lv['year'].max()))}"
+    lv["period"] = pd.cut(lv["year"], [0, 2017, 2019, 9999], labels=["2007-2017", "2018-2019", last])
     pooled = lv.groupby(["period", "level"], observed=True)[
         ["records", "tract_code", "found_t", "same_t", "found_b", "same_b"]].sum().reset_index()
     pooled = pooled[pooled["records"] > 0]

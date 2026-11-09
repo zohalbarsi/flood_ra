@@ -17,6 +17,7 @@ INFOUSA_GLOB = _S["infousa_glob"]
 INFOUSA_DELIM = _S.get("infousa_delim", ",")
 INFOUSA_ENCODING = _S.get("infousa_encoding", "latin-1")
 PREFER_VERSION = {int(y): str(v) for y, v in (_S.get("prefer_version") or {}).items()}
+LAST_YEAR = int(_S["last_year"]) if _S.get("last_year") else None  # None: every converted year
 STUDY_STATES = [s.upper() for s in _S.get("study_states") or []]
 DROP_COLUMNS = list(_S.get("drop_columns") or [])
 FLOOD_FILES = dict(_S["flood_files"])
