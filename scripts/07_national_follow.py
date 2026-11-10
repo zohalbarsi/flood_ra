@@ -118,7 +118,7 @@ def main() -> None:
     print(f"panel: {n_fam:,} households, {n_per:,} adults", flush=True)
 
     # national files from the panel's first year on (the IDs above use every analysis year)
-    wanted = {y for y in files if not settings.PANEL_FIRST_YEAR or y >= settings.PANEL_FIRST_YEAR}
+    wanted = {y for y in files if not settings.FIRST_YEAR or y >= settings.FIRST_YEAR}
     raw = {y: f for y, v, f in paths.raw_files() if y in wanted and v == settings.PREFER_VERSION.get(y, "main")}
     absent = sorted(wanted - set(raw))
     if absent:

@@ -387,7 +387,7 @@ def main() -> None:
     if not files:
         sys.exit(f"no converted files in {paths.INFOUSA_PARQUET}; run step 01 first")
     states = geo.study_states()
-    first = settings.PANEL_FIRST_YEAR
+    first = settings.FIRST_YEAR
     years = [y for y in sorted(files) if not first or y >= first]
     if BASE_YEAR not in years:
         print(f"note: {BASE_YEAR} is not among the panel years {years[0]}-{years[-1]}")

@@ -11,8 +11,8 @@ migrate.tech.cornell.edu.
    residents who moved to another block group in a year; people moving in
    from another county or state, and out to another county or state, per 100
    residents a year. Block-group totals are summed to tracts.
-2. States: people moving from each state to NC and to SC, and from NC and SC
-   to each state (yearly average, 2011-2019; lower 48 states and DC shown).
+2. States: people moving between each state and NC or SC, in and out
+   combined (yearly average, 2011-2019; lower 48 states and DC shown).
 
 Not a pipeline step. Run on the server after migrate_explore.py:
     python scripts/inspect/migrate_maps.py
@@ -108,37 +108,35 @@ def plot_tracts(rates: pd.DataFrame, path: Path) -> list[str]:
 
 
 def plot_states(flows: pd.DataFrame, n_years: int, path: Path) -> None:
+    """One map: people moving between each state and NC or SC, in and out combined."""
     import matplotlib
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
     fips = [f for f in geo.STATE_FIPS.values() if f not in NOT_SHOWN]
     counties = census.boundaries("county", fips)
     states = counties.assign(st=counties["geoid"].str[:2]).dissolve("st").reset_index().to_crs(ALBERS)
-    postal = {v: k for k, v in geo.STATE_FIPS.items()}
-    states["postal"] = states["st"].map(postal)
-    vals = flows["people"][flows["people"] > 0]
-    norm = matplotlib.colors.LogNorm(vmin=max(vals.quantile(0.02), 1), vmax=vals.max())
-    cmap = "viridis_r"
-    fig, axes = plt.subplots(2, 2, figsize=(15, 9.6))
-    for i, st in enumerate(STUDY.values()):
-        for j, (direction, title) in enumerate((("into", f"Moved to {st} from each state"),
-                                                ("out of", f"Moved from {st} to each state"))):
-            ax = axes[i, j]
-            f = flows[(flows["study_state"] == st) & (flows["direction"] == direction)]
-            g = states.merge(f, left_on="postal", right_on="other_state", how="left")
-            g.plot(ax=ax, color="#eeeeee", edgecolor="white", linewidth=0.4)
-            g[g["people"].notna()].plot(ax=ax, column="people", cmap=cmap, norm=norm, edgecolor="white",
-                                        linewidth=0.4)
-            states[states["postal"] == st].plot(ax=ax, color="#d62728", edgecolor="black", linewidth=0.8)
-            ax.set_title(title, fontsize=11)
-            ax.set_axis_off()
-    sm = matplotlib.cm.ScalarMappable(cmap=cmap, norm=norm)
-    cb = fig.colorbar(sm, ax=list(axes.flat), orientation="horizontal", fraction=0.04, pad=0.03)
-    cb.set_ticks([v for v in (30, 100, 300, 1000, 3000, 10000, 30000) if norm.vmin <= v <= norm.vmax])
-    cb.set_label(f"people a year (average of {n_years} years, log scale); red: the state itself")
+    states["postal"] = states["st"].map({v: k for k, v in geo.STATE_FIPS.items()})
+    study = list(STUDY.values())
+    total = flows[~flows["other_state"].isin(study)].groupby("other_state")["people"].sum()
+    # NC rows hold both directions between NC and SC
+    between = flows[(flows["study_state"] == study[0]) & (flows["other_state"] == study[1])]["people"].sum()
+    g = states.merge(total.rename("people"), left_on="postal", right_index=True, how="left")
+    norm = matplotlib.colors.LogNorm(vmin=max(total.min(), 1), vmax=total.max())
+    blues = matplotlib.colors.ListedColormap(plt.cm.Blues(np.linspace(0.18, 1, 256)))  # light blue to dark blue
+    fig, ax = plt.subplots(figsize=(12, 7.6))
+    g.plot(ax=ax, color="#eeeeee", edgecolor="white", linewidth=0.5)
+    g[g["people"].notna()].plot(ax=ax, column="people", cmap=blues, norm=norm, edgecolor="white", linewidth=0.5)
+    states[states["postal"].isin(study)].plot(ax=ax, color="#808080", edgecolor="black", linewidth=0.8)
+    ax.set_axis_off()
+    sm = matplotlib.cm.ScalarMappable(cmap=blues, norm=norm)
+    cb = fig.colorbar(sm, ax=ax, orientation="horizontal", fraction=0.04, pad=0.02)
+    cb.set_ticks([v for v in (100, 300, 1000, 3000, 10000, 30000, 100000) if norm.vmin <= v <= norm.vmax])
     cb.ax.xaxis.set_major_formatter(matplotlib.ticker.FuncFormatter(lambda v, _: f"{v:,.0f}"))
-    fig.suptitle("MIGRATE: moves between NC or SC and each other state, 2011-2019 "
-                 "(Alaska and Hawaii not shown)", fontsize=12)
+    cb.ax.xaxis.set_minor_formatter(matplotlib.ticker.NullFormatter())
+    cb.set_label(f"people a year moving to or from NC or SC (average of {n_years} years, log scale)")
+    ax.set_title("MIGRATE: moves between each state and NC or SC, in and out combined, 2011-2019\n"
+                 f"NC and SC in grey; between the two: {between:,.0f} people a year. "
+                 "Alaska and Hawaii not shown.", fontsize=11)
     fig.savefig(path, dpi=150, bbox_inches="tight")
     plt.close(fig)
 

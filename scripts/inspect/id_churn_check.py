@@ -1,6 +1,6 @@
 """Do infoUSA IDs change when people move? A name check within NC/SC.
 
-For each pair of consecutive years from panel_first_year: primary families
+For each pair of consecutive years from first_year: primary families
 in NC/SC whose FAMILYID is in neither the next year's NC/SC file nor its
 step 07 file of records in other states ("vanished"). Their adults are looked
 up in the next year's NC/SC file by first name, last name and birth year
@@ -19,7 +19,7 @@ exactly one person has it in the next year.
 
 Not a pipeline step. Run on the server after steps 01 and 07:
     python scripts/inspect/id_churn_check.py [first year of pairs ...]
-(default: every pair from panel_first_year). Names are used inside DuckDB
+(default: every pair from first_year). Names are used inside DuckDB
 only; the outputs are counts: output/logs/id_churn_check.md and
 output/tables/id_churn_check.csv.
 """
@@ -158,7 +158,7 @@ def main() -> None:
     if not files:
         sys.exit(f"no converted files in {paths.INFOUSA_PARQUET}; run step 01 first")
     states = geo.study_states()
-    first = settings.PANEL_FIRST_YEAR or min(files)
+    first = settings.FIRST_YEAR or min(files)
     years = [y for y in sorted(files) if y >= first]
     pairs = [y for y in years[:-1] if y + 1 in files]
     if len(sys.argv) > 1:

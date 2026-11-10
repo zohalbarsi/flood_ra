@@ -118,7 +118,7 @@ When a pull changes `requirements.txt`, run `pip install -r requirements.txt` fi
   Other. Unknown codes (00, ZZ, blank) are left out of the race shares.
 
 - **07** and **08** build a household panel: every FAMILYID that is a
-  primary family in NC or SC in at least one year from `panel_first_year`
+  primary family in NC or SC in at least one year from `first_year`
   (2011, the first MIGRATE year) to `last_year`, followed in every year it
   appears anywhere in the US.
   - **07** reads each year's national file once (slow, like step 01) and
@@ -191,7 +191,9 @@ Raw inputs are read-only: the pipeline never writes into `infousa_raw` or
 
 ## Decisions so far (config/settings.yaml)
 
-- **Years: 2007-2024** (`last_year`). The 2025 file is converted but left
+- **Years: 2007-2024** (`last_year`); the demographic trends (step 06) and
+  the household panel (steps 07-08) start in 2011 (`first_year`, the first
+  MIGRATE year). The 2025 file is converted but left
   out of every step from 03 on, because Data Axle rebuilt it: 21% more
   records (about 560,000 new primary families at new addresses), owner codes
   moved into unknown (NC owner share down 12 points while ACS is flat), and

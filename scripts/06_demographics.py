@@ -164,7 +164,7 @@ def plot_maps(shapes, tracts: pd.DataFrame, acs_tracts: pd.DataFrame | None, sta
 
 
 def main() -> None:
-    files = paths.chosen_files()
+    files = {y: f for y, f in paths.chosen_files().items() if not settings.FIRST_YEAR or y >= settings.FIRST_YEAR}
     if not files:
         sys.exit(f"no converted files in {paths.INFOUSA_PARQUET}; run step 01 first")
     for d in (TABLES, FIGURES, PRIVATE):
