@@ -14,6 +14,10 @@ prefer_version:
 # file is converted but left out: Data Axle rebuilt it (see README).
 last_year: 2024
 
+# First year of the household panel (steps 07-08). Panel households are the
+# primary families in NC/SC in at least one year from here to last_year.
+panel_first_year: 2011
+
 # Keep households whose address state is one of these postal codes.
 study_states: [NC, SC]
 

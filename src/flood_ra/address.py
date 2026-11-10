@@ -10,11 +10,13 @@ def norm(col: str, cols: set[str]) -> str:
     return "''"
 
 
-def address_key(cols: set[str], unit: bool) -> str:
+def address_key(cols: set[str], unit: bool, compact: bool = False) -> str:
     """SQL for a version-stable key (md5 hex) of a household's mailing address:
     the street address (house number, street, ZIP; optionally the unit), or for
     records without a street name the PO box or rural route and ZIP; NULL when
-    neither is present."""
+    neither is present. compact: a 64-bit hash instead of the md5 text (8 bytes
+    instead of 32; enough to tell whether an address changed)."""
+    digest = "hash" if compact else "md5"
     zip5 = "left(trim(CAST(ZIP AS VARCHAR)), 5)"
     street = ["HOUSE_NUM", "STREET_PRE_DIR", "STREET_NAME", "STREET_SUFFIX", "STREET_POST_DIR", zip5]
     street += ["UNIT_NUM"] if unit else []
@@ -22,5 +24,5 @@ def address_key(cols: set[str], unit: bool) -> str:
     has_box = " OR ".join(f"nullif(trim(CAST({c} AS VARCHAR)), '') IS NOT NULL"
                           for c in ("BOX_NUM", "ROUTE_NUM") if c in cols) or "false"
     return (f"CASE WHEN nullif(trim(CAST(STREET_NAME AS VARCHAR)), '') IS NOT NULL "
-            f"THEN md5(concat_ws('|', 'S', {', '.join(norm(c, cols) for c in street)})) "
-            f"WHEN {has_box} THEN md5(concat_ws('|', 'B', {', '.join(norm(c, cols) for c in box)})) END")
+            f"THEN {digest}(concat_ws('|', 'S', {', '.join(norm(c, cols) for c in street)})) "
+            f"WHEN {has_box} THEN {digest}(concat_ws('|', 'B', {', '.join(norm(c, cols) for c in box)})) END")

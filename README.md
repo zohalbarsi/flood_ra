@@ -118,8 +118,9 @@ When a pull changes `requirements.txt`, run `pip install -r requirements.txt` fi
   Other. Unknown codes (00, ZZ, blank) are left out of the race shares.
 
 - **07** and **08** build a household panel: every FAMILYID that is a
-  primary family in NC or SC in at least one year, followed in every year
-  it appears anywhere in the US.
+  primary family in NC or SC in at least one year from `panel_first_year`
+  (2011, the first MIGRATE year) to `last_year`, followed in every year it
+  appears anywhere in the US.
   - **07** reads each year's national file once (slow, like step 01) and
     keeps the panel's records outside NC/SC: the same FAMILYID, or any adult
     (`IndividualID_1-5`) ever listed in a panel household. It keeps the
@@ -136,7 +137,9 @@ When a pull changes `requirements.txt`, run `pip install -r requirements.txt` fi
     path (`links.parquet` records which). `households.parquet` adds each
     household's 2017 (pre-Florence) address and its flood exposure from
     step 04. The report follows the households living in NC/SC in 2017,
-    back to 2007 and forward to 2024, next to the cross-section.
+    back to 2011 and forward to 2024, next to the cross-section. Step 08
+    works one year at a time and keeps only two years of work files, so it
+    needs little disk beyond the panel itself.
   - Read the panel years together, e.g.
     `duckdb.sql("SELECT * FROM read_parquet('<derived>/panel/panel_*.parquet')")`.
 

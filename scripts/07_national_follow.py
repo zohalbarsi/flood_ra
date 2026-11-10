@@ -7,6 +7,7 @@ so this step reads each year's national file once, as step 01 does, and keeps
 the records outside the study states that belong to the panel: the same
 FAMILYID, or any adult (IndividualID_1-5) ever listed in a panel household.
 The adult match lets step 08 follow a household whose FAMILYID changes.
+National files are read from panel_first_year (settings.yaml) on.
 
 Writes (record level, stays on the server): derived/panel/ids_family.parquet,
 derived/panel/ids_person.parquet and derived/panel/national/infousa_<year>.parquet
@@ -136,8 +137,10 @@ def main() -> None:
     n_per = con.sql(f"SELECT count(*) FROM read_parquet('{panel.IDS_PERSON.as_posix()}')").fetchall()[0][0]
     print(f"panel: {n_fam:,} households, {n_per:,} adults", flush=True)
 
-    raw = {y: f for y, v, f in paths.raw_files() if y in files and v == settings.PREFER_VERSION.get(y, "main")}
-    absent = sorted(set(files) - set(raw))
+    # national files from the panel's first year on (the IDs above use every analysis year)
+    wanted = {y for y in files if not settings.PANEL_FIRST_YEAR or y >= settings.PANEL_FIRST_YEAR}
+    raw = {y: f for y, v, f in paths.raw_files() if y in wanted and v == settings.PREFER_VERSION.get(y, "main")}
+    absent = sorted(wanted - set(raw))
     if absent:
         sys.exit(f"no raw national file for {', '.join(map(str, absent))} (the version prefer_version picks)")
     todo = []
