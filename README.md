@@ -157,6 +157,12 @@ When a pull changes `requirements.txt`, run `pip install -r requirements.txt` fi
   information is below the state level. The file for year t is read as
   moves from year t-1 to t; check this against the MIGRATE documentation.
 
+- **ID check** (`scripts/inspect/id_churn_check.py`, not a pipeline step):
+  do households whose FAMILYID disappears turn up the next year under new
+  IDs? Looks up their adults in the next year's NC/SC file by first name,
+  last name and birth year (unique matches only), with a baseline from
+  households that kept their FAMILYID (`id_churn_check.md`).
+
 Logs are written to `output/logs/`. Step 01 is the slow one (19 years plus 2
 alternate versions, about 275 GB compressed): expect several hours. Run it in
 the background so a closed window doesn't stop it:
