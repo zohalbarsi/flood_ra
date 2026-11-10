@@ -1,6 +1,7 @@
 # ---- Data never goes in git: it lives on the server, paths set in config/paths.yaml ----
 config/paths.yaml
 data/
+/migrate_dataset/
 output/data/
 *.csv
 *.txt.gz
