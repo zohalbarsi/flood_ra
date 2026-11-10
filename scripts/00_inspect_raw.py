@@ -15,12 +15,18 @@ from flood_ra import paths, settings  # noqa: E402
 from flood_ra.inventory import compact_section, section  # noqa: E402
 
 
+USAGE = "usage: python scripts/00_inspect_raw.py [corelogic | folder <path> | <path>]"
+
+
 def main():
-    if sys.argv[1:2] == ["folder"]:
-        if len(sys.argv) != 3:
-            sys.exit("usage: python scripts/00_inspect_raw.py folder <path>")
-        root = Path(sys.argv[2]).expanduser().resolve()
-        paths.require(root)
+    args = sys.argv[1:]
+    if args[:1] == ["folder"] or (len(args) == 1 and args[0] != "corelogic"):
+        target = args[1:2] if args[:1] == ["folder"] else args
+        if len(target) != 1 or len(args) > 2:
+            sys.exit(USAGE)
+        root = Path(target[0]).expanduser().resolve()
+        if not root.is_dir():
+            sys.exit(f"folder not found: {root}\n{USAGE}")
         out = paths.LOG_DIR / f"inventory_{root.name}.md"
         out.write_text("\n".join([f"# Inventory of {root.name} (schema only, no values)", ""]
                                   + compact_section(duckdb.connect(), root.name, root,
