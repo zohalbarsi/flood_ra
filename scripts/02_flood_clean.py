@@ -1,16 +1,3 @@
-"""Step 2: clean the Hurricane Florence flood exposure files.
-
-For each geography (tract, block group, block) builds the zero-padded Census
-GEOID from its parts and keeps the flood measures, renamed with the level as
-a prefix (tract_pct_flooded_gfd, bg_pct_flooded_gfd, ...) so the levels can
-sit side by side after the merge. Writes derived/flood_clean/flood_<level>.parquet
-and output/logs/flood_clean.md: rows, unique IDs, IDs that disagree with the
-file's own GEOID column, areas per state, and missing flood shares.
-
-It also prepares the block outlines (block_polygons in settings.yaml) for the
-block merge: converted to WGS84 longitude/latitude, keyed by the same GEOID,
-one outline per block, written to derived/flood_clean/block_polygons.parquet.
-"""
 from __future__ import annotations
 
 import re
