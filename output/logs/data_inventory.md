@@ -6,7 +6,7 @@
 
 by extension: .gz (22), (none) (1), .csv (1), .zip (1)
 
-**1 match infousa_glob `**/*.csv`** (the files step 01 converts)
+**21 match infousa_glob `**/US_Consumer_5_File_*.csv.gz`** (the files step 01 converts)
 
 ### `.Rhistory` (0.00 GB)
 
@@ -2225,6 +2225,8 @@ by extension: .gz (22), (none) (1), .csv (1), .zip (1)
   - `Ethnicity_Code_5` (VARCHAR)
 
 ### `documents_20260309.zip` (17.45 GB)
+  1 files inside:
+  - `US_Consumer_5_File_2025.csv.gz.prod.1077118419` (17.45 GB unzipped)
 
 ## flood_exposure
 
