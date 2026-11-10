@@ -75,8 +75,8 @@ def build(con, years: list[int], out: Path) -> list[float]:
         part = (work / f"part_{k}.parquet").as_posix()
         con.sql(f"""COPY (
             WITH b AS (SELECT * FROM read_parquet('{base}') WHERE hash(hhid) % {SLICES} = {k}),
-                 f AS (SELECT hhid, year, fid, state, county, in_study, moved, tenure, income, kids, head_age,
-                              eth_broad
+                 f AS MATERIALIZED (SELECT hhid, year, fid, state, county, in_study, moved, tenure, income,
+                                           kids, head_age, eth_broad
                        FROM {files} WHERE hash(hhid) % {SLICES} = {k} AND hhid IN (SELECT hhid FROM b)),
                  l AS (SELECT hhid, max(year) AS last_seen FROM f GROUP BY hhid)
             SELECT b.hhid, g.year,
