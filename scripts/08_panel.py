@@ -1,39 +1,3 @@
-"""Step 8: the household panel, and how its households change over time.
-
-Unit: a household, followed in every year it appears anywhere in the US
-(study-state records from step 01, other states from step 07). The panel
-holds every FAMILYID that is a primary family in a study state in at least
-one year up to last_year.
-
-When a household's FAMILYID is not in the next year's files, its adults are
-looked up there. If they all turn up under one FAMILYID that is new that year
-and holds no one else, the new FAMILYID continues the household (same hhid).
-Otherwise the household split (adults in several households), joined another
-household, or was not found, and its path ends there (links.parquet).
-
-One row per household (hhid) and year: where it lives (state, county, tract
-from the 2010 ALS codes; whether it moved since the year before, left or
-entered the study states), tenure (owner 7-9, renter 0-3, unknown), income,
-wealth and its rank within the year (its scale changes between years), home
-value, children, head's age, race/ethnicity (ethnicity.py), marital status,
-length of residence and the number of listed adults. When a household has
-several records in a year: the primary-family record, then the most recent
-(RECENCY_DATE), then the one in a study state (n_addresses and multi_state
-say how many addresses and whether several states it had that year).
-
-The large steps run in slices of households (panel.SLICES) so they fit in
-memory and write no large temporary files; work files are removed as soon
-as they are used.
-
-households.parquet adds each household's first and last year and its
-BASE_YEAR address (before Hurricane Florence, Sept 2018) with the flood
-exposure of that address from step 04, when the merged file exists.
-
-Writes (record level, stays on the server): derived/panel/panel_<year>.parquet,
-derived/panel/households.parquet, derived/panel/links.parquet. Aggregates:
-output/logs/panel_report.md, output/tables/panel_*.csv,
-output/figures/panel_trends.png.
-"""
 from __future__ import annotations
 
 import re
