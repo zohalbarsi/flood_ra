@@ -1,35 +1,3 @@
-"""Step 6: demographic trends of infoUSA households, NC vs SC, against Census
-benchmarks; and maps of race and homeownership by census tract.
-
-Unit: households = primary families (PRIMARY_FAMILY_IND = 1). Variables
-(Data Axle dictionary):
-- owners / renters: OWNER_RENTER_STATUS 7-9 owner, 0-3 renter, 4-6 unknown.
-  Plotted owner share: codes 7-9 among households coded 0-9, so the unknowns
-  count as renters (the Duke DPRC report's second measure, which is closer to
-  ACS). Tables also give owners among known codes (0-3, 7-9). Census: ACS B25003.
-- children: CHILDREN_IND = 1 and the mean of CHILDRENHHCOUNT. Census: ACS
-  B11005 (households with someone under 18) and B09001 (people under 18 in
-  households) per household.
-- income: FIND_DIV_1000 ($ thousands, top-coded at 500). Census: ACS B19013
-  median household income (nominal dollars, like infoUSA).
-- wealth: WEALTH_FINDER_SCORE ($ thousands). No Census benchmark exists, so it
-  is only in the CSV table, not in the figure or the report.
-- home value: ESTMTD_HOME_VAL_DIV_1000 of likely owners. Census: ACS B25077.
-- race / ethnicity: Ethnicity_Code_1 of the first person, grouped with the
-  code table config/ethnicity_codes.csv and the categories in
-  src/flood_ra/ethnicity.py (LR counts as Black American). Shares are of
-  households with a placed code: unknown codes (00, ZZ, blank) and codes no
-  rule places are left out. Census: ACS B11001A-I (race and Hispanic origin
-  of the householder).
-
-Census figures are downloaded from the Census API on the first run and kept
-in benchmarks/ (public data). The maps use the ACS 2015-2019 5-year
-estimates, which still use the 2010 tracts that the infoUSA codes use.
-
-Outputs (aggregates only): output/tables/*.csv, output/figures/*.png,
-output/logs/demographics.md. Tract-level infoUSA shares stay in
-derived/demographics/.
-"""
 from __future__ import annotations
 
 import sys
