@@ -19,6 +19,7 @@ run can simply be started again.
 """
 from __future__ import annotations
 
+import shutil
 import sys
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -38,24 +39,39 @@ def quote(col: str) -> str:
 
 def build_ids(files: dict[int, Path], states: list[str], sig: str) -> None:
     """Panel FAMILYIDs (primary family in a study state in some year) and every
-    adult listed in their study-state records."""
+    adult listed in their study-state records. Built in slices of IDs so the
+    de-duplication fits in memory (no large temporary files)."""
     con = db.connect(threads=paths.THREADS * paths.PARALLEL)
     src = "read_parquet([" + ", ".join(f"'{f.as_posix()}'" for f in files.values()) + "], union_by_name=true)"
     cols = {r[0] for r in con.sql(f"DESCRIBE SELECT * FROM {src}").fetchall()}
     where = (f"upper(trim(STATE)) IN ({', '.join(repr(s) for s in states)}) "
              "AND nullif(trim(FAMILYID), '') IS NOT NULL")
-    fam_tmp, per_tmp = (p.with_suffix(".parquet.tmp") for p in (panel.IDS_FAMILY, panel.IDS_PERSON))
-    con.sql(f"""COPY (SELECT DISTINCT trim(FAMILYID) AS id FROM {src}
-                      WHERE {where} AND trim(PRIMARY_FAMILY_IND) = '1')
-                TO '{fam_tmp.as_posix()}' (FORMAT parquet, {panel.metadata(sig)})""")
-    con.sql(f"""COPY (
-        SELECT DISTINCT p AS id FROM (
-            SELECT unnest({panel.persons_list(cols)}) AS p FROM {src}
-            WHERE {where} AND trim(FAMILYID) IN (SELECT id FROM read_parquet('{fam_tmp.as_posix()}')))
-        WHERE p IS NOT NULL
-    ) TO '{per_tmp.as_posix()}' (FORMAT parquet, {panel.metadata(sig)})""")
-    fam_tmp.replace(panel.IDS_FAMILY)
-    per_tmp.replace(panel.IDS_PERSON)
+    parts = panel.DIR / "ids_parts"
+    shutil.rmtree(parts, ignore_errors=True)
+    parts.mkdir(parents=True)
+    try:
+        for k in range(panel.SLICES):
+            con.sql(f"""COPY (SELECT DISTINCT trim(FAMILYID) AS id FROM {src}
+                              WHERE {where} AND trim(PRIMARY_FAMILY_IND) = '1'
+                                AND hash(trim(FAMILYID)) % {panel.SLICES} = {k})
+                        TO '{(parts / f"family_{k}.parquet").as_posix()}' (FORMAT parquet)""")
+        fam = f"(SELECT id FROM read_parquet('{(parts / 'family_*.parquet').as_posix()}'))"
+        for k in range(panel.SLICES):
+            con.sql(f"""COPY (
+                SELECT DISTINCT p AS id FROM (
+                    SELECT unnest({panel.persons_list(cols)}) AS p FROM {src}
+                    WHERE {where} AND trim(FAMILYID) IN {fam})
+                WHERE p IS NOT NULL AND hash(p) % {panel.SLICES} = {k}
+            ) TO '{(parts / f"person_{k}.parquet").as_posix()}' (FORMAT parquet)""")
+            print(f"  adults: slice {k + 1} of {panel.SLICES}", flush=True)
+        # the slices hold disjoint IDs, so joining them needs no de-duplication
+        for name, out in (("family", panel.IDS_FAMILY), ("person", panel.IDS_PERSON)):
+            tmp = out.with_suffix(".parquet.tmp")
+            con.sql(f"COPY (SELECT id FROM read_parquet('{(parts / f'{name}_*.parquet').as_posix()}')) "
+                    f"TO '{tmp.as_posix()}' (FORMAT parquet, {panel.metadata(sig)})")
+            tmp.replace(out)
+    finally:
+        shutil.rmtree(parts, ignore_errors=True)
 
 
 def follow(year: int, raw: Path, states: list[str], sig: str) -> str:

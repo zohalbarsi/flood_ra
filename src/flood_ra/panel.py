@@ -16,6 +16,7 @@ import duckdb
 from flood_ra import paths, settings
 
 DIR = paths.DERIVED / "panel"
+SLICES = 8  # large steps run in this many slices of households, so they fit in memory
 NATIONAL = DIR / "national"              # panel records outside the study states (step 07)
 WORK = DIR / "work"                      # step 08 intermediates, removed when it finishes
 IDS_FAMILY = DIR / "ids_family.parquet"  # FAMILYIDs of panel households
@@ -48,14 +49,15 @@ def persons_list(cols) -> str:
 def panel_records(select: str, cols, fam: str, per: str) -> str:
     """SQL keeping the rows of `select` (a query with the record columns) that
     belong to the panel: FAMILYID in `fam`, or any adult in `per` (both are
-    one-column queries named id). A record matched by FAMILYID passes once; the
-    others are unnested by adult and matched against `per`, so the person hash
-    table is built once."""
+    one-column queries named id). A record matched by FAMILYID passes once;
+    the others are unnested by adult and matched against `per`, so each ID
+    list is held in memory once. A record matched through two of its adults
+    comes out twice; step 08 keeps one row per household and year anyway."""
     return f"""
         WITH m AS (SELECT r.*, trim(r.FAMILYID) IN (SELECT id FROM {fam}) AS _fam FROM ({select}) r),
              u AS (SELECT m.*, unnest(CASE WHEN _fam THEN [NULL::VARCHAR] ELSE {persons_list(cols)} END) AS _p
                    FROM m)
-        SELECT DISTINCT * EXCLUDE (_fam, _p) FROM u WHERE _fam OR _p IN (SELECT id FROM {per})
+        SELECT * EXCLUDE (_fam, _p) FROM u WHERE _fam OR _p IN (SELECT id FROM {per})
     """
 
 

@@ -18,7 +18,12 @@ wealth and its rank within the year (its scale changes between years), home
 value, children, head's age, race/ethnicity (ethnicity.py), marital status,
 length of residence and the number of listed adults. When a household has
 several records in a year: the primary-family record, then the most recent
-(RECENCY_DATE), then the one in a study state.
+(RECENCY_DATE), then the one in a study state (n_addresses and multi_state
+say how many addresses and whether several states it had that year).
+
+The large steps run in slices of households (panel.SLICES) so they fit in
+memory and write no large temporary files; work files are removed as soon
+as they are used.
 
 households.parquet adds each household's first and last year and its
 BASE_YEAR address (before Hurricane Florence, Sept 2018) with the flood
@@ -54,16 +59,21 @@ FAM = f"(SELECT id FROM read_parquet('{panel.IDS_FAMILY.as_posix()}'))"
 PER = f"(SELECT id FROM read_parquet('{panel.IDS_PERSON.as_posix()}'))"
 
 
-def rows_file(year: int) -> str:
-    return (panel.WORK / f"rows_{year}.parquet").as_posix()
+def rows_file(year: int, k: int | str = "*") -> str:
+    """Work file(s) with one row per FAMILYID; slice k, or all slices for "*"."""
+    return (panel.WORK / f"rows_{year}_{k}.parquet").as_posix()
 
 
-def persons_file(year: int) -> str:
-    return (panel.WORK / f"persons_{year}.parquet").as_posix()
+def persons_file(year: int, k: int | str = "*") -> str:
+    return (panel.WORK / f"persons_{year}_{k}.parquet").as_posix()
 
 
 def final_file(year: int) -> Path:
     return panel.DIR / f"panel_{year}.parquet"
+
+
+def in_slice(col: str, k: int) -> str:
+    return f"hash({col}) % {panel.SLICES} = {k}"
 
 
 def columns(con, src: str) -> set[str]:
@@ -97,37 +107,45 @@ def standard_sql(src: str, cols: set[str], source: str, states: list[str]) -> st
 
 
 def year_rows(con, year: int, conv: Path, states: list[str]) -> tuple[int, int]:
-    """Work files for one year: one row per FAMILYID (panel households, and other
-    households holding a panel adult, which may continue one) and its adults."""
+    """Work files for one year, in slices of FAMILYIDs: one row per FAMILYID
+    (panel households, and other households holding a panel adult, which may
+    continue one) and the FAMILYID's adults."""
     src = f"read_parquet('{conv.as_posix()}')"
     cols = columns(con, src)
-    con.sql(f"""CREATE OR REPLACE TEMP TABLE extra AS
-        SELECT DISTINCT fid FROM (
-            SELECT trim(FAMILYID) AS fid, unnest({panel.persons_list(cols)}) AS p
-            FROM {src} WHERE trim(FAMILYID) NOT IN {FAM})
-        WHERE p IN {PER}""")
-    parts = [f"SELECT * FROM ({standard_sql(src, cols, 'study states', states)}) "
-             f"WHERE fid IN {FAM} OR fid IN (SELECT fid FROM extra)"]
-    nat = panel.national_file(year)
-    nat_src = f"read_parquet('{nat.as_posix()}')"
-    parts.append(standard_sql(nat_src, columns(con, nat_src), "other states", states))
-    con.sql(f"CREATE OR REPLACE TEMP TABLE recs AS SELECT * FROM ({' UNION ALL BY NAME '.join(parts)}) "
-            "WHERE fid IS NOT NULL")
-    con.sql(f"""COPY (
-        SELECT * EXCLUDE (persons), count(*) OVER w AS n_records,
-               min(state) OVER w IS DISTINCT FROM max(state) OVER w AS multi_state
-        FROM recs WINDOW w AS (PARTITION BY fid)
-        QUALIFY row_number() OVER (PARTITION BY fid ORDER BY prim DESC, recency DESC NULLS LAST,
-                                   in_study DESC, addr NULLS LAST) = 1
-    ) TO '{rows_file(year)}' (FORMAT parquet)""")
-    con.sql(f"""COPY (SELECT DISTINCT fid, p AS person FROM (SELECT fid, unnest(persons) AS p FROM recs)
-                      WHERE p IS NOT NULL)
-                TO '{persons_file(year)}' (FORMAT parquet)""")
-    n = con.sql(f"SELECT count(*), count(*) FILTER (WHERE source = 'other states') "
-                f"FROM read_parquet('{rows_file(year)}')").fetchall()[0]
-    con.sql("DROP TABLE recs")
+    # other households' adults, then those that are panel adults (one ID list in memory at a time)
+    con.sql(f"""CREATE OR REPLACE TEMP TABLE other_adults AS
+        SELECT trim(FAMILYID) AS fid, unnest({panel.persons_list(cols)}) AS p FROM {src}
+        WHERE trim(FAMILYID) NOT IN {FAM}""")
+    con.sql(f"CREATE OR REPLACE TEMP TABLE extra AS SELECT DISTINCT fid FROM other_adults WHERE p IN {PER}")
+    con.sql("DROP TABLE other_adults")
+    conv_rows = (panel.WORK / f"study_{year}.parquet").as_posix()
+    con.sql(f"""COPY (SELECT * FROM ({standard_sql(src, cols, 'study states', states)})
+                      WHERE fid IN {FAM} OR fid IN (SELECT fid FROM extra))
+                TO '{conv_rows}' (FORMAT parquet)""")
     con.sql("DROP TABLE extra")
-    return n
+    nat_src = f"read_parquet('{panel.national_file(year).as_posix()}')"
+    nat = standard_sql(nat_src, columns(con, nat_src), "other states", states)
+    for k in range(panel.SLICES):
+        con.sql(f"""CREATE OR REPLACE TEMP TABLE recs AS
+            SELECT * FROM (SELECT * FROM read_parquet('{conv_rows}') UNION ALL BY NAME {nat})
+            WHERE fid IS NOT NULL AND {in_slice('fid', k)}""")
+        # national records matched through two adults appear twice: rows keep one record per FAMILYID
+        con.sql(f"""COPY (
+            WITH a AS (SELECT fid, count(DISTINCT addr) AS n_addresses,
+                              min(state) IS DISTINCT FROM max(state) AS multi_state
+                       FROM recs GROUP BY fid)
+            SELECT r.* EXCLUDE (persons), a.n_addresses, a.multi_state
+            FROM recs r JOIN a USING (fid)
+            QUALIFY row_number() OVER (PARTITION BY r.fid ORDER BY r.prim DESC, r.recency DESC NULLS LAST,
+                                       r.in_study DESC, r.addr NULLS LAST) = 1
+        ) TO '{rows_file(year, k)}' (FORMAT parquet)""")
+        con.sql(f"""COPY (SELECT DISTINCT fid, p AS person FROM (SELECT fid, unnest(persons) AS p FROM recs)
+                          WHERE p IS NOT NULL)
+                    TO '{persons_file(year, k)}' (FORMAT parquet)""")
+    con.sql("DROP TABLE recs")
+    Path(conv_rows).unlink()
+    return con.sql(f"SELECT count(*), count(*) FILTER (WHERE source = 'other states') "
+                   f"FROM read_parquet('{rows_file(year)}')").fetchall()[0]
 
 
 def link_years(con, years: list[int]) -> None:
@@ -135,8 +153,12 @@ def link_years(con, years: list[int]) -> None:
     continue a household, with its hhid) and links (what became of each)."""
     con.sql("CREATE OR REPLACE TEMP TABLE succ (fid VARCHAR, hhid VARCHAR, year INTEGER)")
     con.sql("CREATE OR REPLACE TEMP TABLE links (year INTEGER, fid VARCHAR, successor VARCHAR, kind VARCHAR)")
-    con.sql("CREATE OR REPLACE TEMP TABLE first_seen AS SELECT fid, min(year) AS first_year FROM "
-            "read_parquet([" + ", ".join(f"'{rows_file(y)}'" for y in years) + "]) GROUP BY fid")
+    # the year each FAMILYID first appears; the work files are sliced by FAMILYID, so per slice
+    for k in range(panel.SLICES):
+        con.sql(f"""COPY (SELECT fid, min(year) AS first_year
+                          FROM read_parquet([{', '.join(repr(rows_file(y, k)) for y in years)}]) GROUP BY fid)
+                    TO '{(panel.WORK / f"first_seen_{k}.parquet").as_posix()}' (FORMAT parquet)""")
+    first_seen = f"read_parquet('{(panel.WORK / 'first_seen_*.parquet').as_posix()}')"
     for t, t1 in zip(years, years[1:]):
         con.sql(f"""CREATE OR REPLACE TEMP TABLE gone AS
             SELECT fid FROM read_parquet('{rows_file(t)}')
@@ -162,7 +184,7 @@ def link_years(con, years: list[int]) -> None:
                         WHEN f.first_year = {t1} AND n.successor NOT IN (SELECT successor FROM shared)
                              AND g.fid NOT IN (SELECT fid FROM outsiders) THEN 'continues'
                         ELSE 'joined' END AS kind
-            FROM gone g LEFT JOIN n USING (fid) LEFT JOIN first_seen f ON f.fid = n.successor""")
+            FROM gone g LEFT JOIN n USING (fid) LEFT JOIN {first_seen} f ON f.fid = n.successor""")
         con.sql(f"""INSERT INTO succ
             SELECT k.successor, coalesce(s.hhid, k.fid), {t1}
             FROM kinds k LEFT JOIN succ s ON s.fid = k.fid WHERE k.kind = 'continues'""")
@@ -171,73 +193,103 @@ def link_years(con, years: list[int]) -> None:
         print(f"  {t} -> {t1}: households followed", flush=True)
     for name in ("gone", "gp", "cand", "kinds"):
         con.sql(f"DROP TABLE IF EXISTS {name}")
+    for x in [*panel.WORK.glob("persons_*.parquet"), *panel.WORK.glob("first_seen_*.parquet")]:
+        x.unlink()  # no longer needed
 
 
 def final_years(con, years: list[int]) -> None:
     """The panel rows: one per household (hhid) and year, with the change since
-    the household's row in the previous file year."""
+    the household's row in the previous file year. Built in slices of hhid."""
     prev = None
     for t in years:
-        con.sql(f"""CREATE OR REPLACE TEMP TABLE cur AS
-            SELECT coalesce(s.hhid, r.fid) AS hhid, s.hhid IS NOT NULL AS linked, r.*,
-                   CASE WHEN r.owner_code BETWEEN 7 AND 9 THEN 'owner'
-                        WHEN r.owner_code BETWEEN 0 AND 3 THEN 'renter' ELSE 'unknown' END AS tenure
-            FROM read_parquet('{rows_file(t)}') r LEFT JOIN succ s ON s.fid = r.fid
-            WHERE r.fid IN {FAM} OR s.fid IS NOT NULL
-            QUALIFY row_number() OVER (PARTITION BY coalesce(s.hhid, r.fid)
-                                       ORDER BY r.prim DESC, r.recency DESC NULLS LAST, r.in_study DESC, r.fid) = 1""")
-        p = (f"(SELECT hhid, addr, state, in_study, tenure FROM read_parquet('{final_file(prev).as_posix()}'))"
-             if prev is not None else "(SELECT hhid, addr, state, in_study, tenure FROM cur WHERE false)")
+        parts = []
+        for k in range(panel.SLICES):
+            con.sql(f"""CREATE OR REPLACE TEMP TABLE cur AS
+                SELECT coalesce(s.hhid, r.fid) AS hhid, s.hhid IS NOT NULL AS linked, r.*,
+                       CASE WHEN r.owner_code BETWEEN 7 AND 9 THEN 'owner'
+                            WHEN r.owner_code BETWEEN 0 AND 3 THEN 'renter' ELSE 'unknown' END AS tenure
+                FROM read_parquet('{rows_file(t)}') r LEFT JOIN succ s ON s.fid = r.fid
+                WHERE (r.fid IN {FAM} OR s.fid IS NOT NULL) AND {in_slice('coalesce(s.hhid, r.fid)', k)}
+                QUALIFY row_number() OVER (PARTITION BY coalesce(s.hhid, r.fid)
+                                           ORDER BY r.prim DESC, r.recency DESC NULLS LAST, r.in_study DESC,
+                                                    r.fid) = 1""")
+            p = (f"(SELECT hhid, addr, state, in_study, tenure FROM read_parquet('{final_file(prev).as_posix()}') "
+                 f"WHERE {in_slice('hhid', k)})" if prev is not None
+                 else "(SELECT hhid, addr, state, in_study, tenure FROM cur WHERE false)")
+            part = (panel.WORK / f"final_{t}_{k}.parquet").as_posix()
+            con.sql(f"""COPY (
+                SELECT c.*,
+                       {ethnicity.sql_category('c.eth_code')} AS eth_category,
+                       {ethnicity.sql_broad('c.eth_code')} AS eth_broad,
+                       p.hhid IS NOT NULL AS seen_before,
+                       CASE WHEN p.hhid IS NOT NULL AND c.addr IS NOT NULL AND p.addr IS NOT NULL
+                            THEN c.addr != p.addr END AS moved,
+                       CASE WHEN p.hhid IS NOT NULL THEN p.in_study AND NOT c.in_study END AS left_study,
+                       CASE WHEN p.hhid IS NOT NULL THEN NOT p.in_study AND c.in_study END AS entered_study,
+                       p.state AS state_before, p.in_study AS in_study_before, p.tenure AS tenure_before
+                FROM cur c LEFT JOIN {p} p USING (hhid)
+            ) TO '{part}' (FORMAT parquet)""")
+            parts.append(part)
+        src = "read_parquet([" + ", ".join(f"'{x}'" for x in parts) + "])"
+        # wealth rank within the year (percent rank: share of households with lower wealth)
+        con.sql(f"""CREATE OR REPLACE TEMP TABLE wr AS
+            SELECT wealth, coalesce(sum(n) OVER (ORDER BY wealth ROWS BETWEEN UNBOUNDED PRECEDING AND 1 PRECEDING), 0)
+                           / nullif(sum(n) OVER () - 1, 0) AS wealth_rank
+            FROM (SELECT wealth, count(*) AS n FROM {src} WHERE wealth IS NOT NULL GROUP BY wealth)""")
         tmp = final_file(t).with_suffix(".parquet.tmp")
-        con.sql(f"""COPY (
-            SELECT c.*,
-                   CASE WHEN c.wealth IS NOT NULL
-                        THEN percent_rank() OVER (PARTITION BY c.wealth IS NULL ORDER BY c.wealth) END AS wealth_rank,
-                   {ethnicity.sql_category('c.eth_code')} AS eth_category,
-                   {ethnicity.sql_broad('c.eth_code')} AS eth_broad,
-                   p.hhid IS NOT NULL AS seen_before,
-                   CASE WHEN p.hhid IS NOT NULL AND c.addr IS NOT NULL AND p.addr IS NOT NULL
-                        THEN c.addr != p.addr END AS moved,
-                   CASE WHEN p.hhid IS NOT NULL THEN p.in_study AND NOT c.in_study END AS left_study,
-                   CASE WHEN p.hhid IS NOT NULL THEN NOT p.in_study AND c.in_study END AS entered_study,
-                   p.state AS state_before, p.in_study AS in_study_before, p.tenure AS tenure_before
-            FROM cur c LEFT JOIN {p} p USING (hhid)
-        ) TO '{tmp.as_posix()}' (FORMAT parquet, COMPRESSION zstd)""")
+        con.sql(f"COPY (SELECT f.*, wr.wealth_rank FROM {src} f LEFT JOIN wr USING (wealth)) "
+                f"TO '{tmp.as_posix()}' (FORMAT parquet, COMPRESSION zstd)")
         tmp.replace(final_file(t))
+        for x in parts + [str(x) for x in panel.WORK.glob(f"rows_{t}_*.parquet")]:
+            Path(x).unlink()  # no longer needed
         prev = t
     con.sql("DROP TABLE IF EXISTS cur")
+    con.sql("DROP TABLE IF EXISTS wr")
 
 
 def household_table(con, years: list[int]) -> list[str]:
-    """households.parquet: one row per household; returns notes for the report."""
+    """households.parquet: one row per household, built in slices of hhid;
+    returns notes for the report."""
     notes = []
     finals = "read_parquet([" + ", ".join(f"'{final_file(y).as_posix()}'" for y in years) + "])"
-    base = (f"""(SELECT hhid, fid AS fid_base, true AS present_base, in_study AS in_study_base,
-                        state AS state_base, county AS county_base, tract AS tract_base, tenure AS tenure_base
-                 FROM read_parquet('{final_file(BASE_YEAR).as_posix()}'))""" if BASE_YEAR in years else
-            "(SELECT NULL::VARCHAR AS hhid WHERE false)")
     merged = paths.MERGED / f"infousa_flood_{BASE_YEAR}.parquet"
-    exposure, join = "", ""
+    exposure = None
     if BASE_YEAR in years and merged.exists():
         mcols = columns(con, f"read_parquet('{merged.as_posix()}')")
         keep = [c for c in ("in_flood_counties", "block_exposure_ok", "tract_geoid", "bg_geoid", "block_geoid")
                 if c in mcols] + sorted(c for c in mcols if re.match(r"^(tract|bg|block)_pct_flooded_", c))
-        exposure = f""", e AS (
-            SELECT trim(FAMILYID) AS fid, {', '.join(keep)} FROM read_parquet('{merged.as_posix()}')
-            QUALIFY row_number() OVER (PARTITION BY trim(FAMILYID)
-                                       ORDER BY coalesce(trim(PRIMARY_FAMILY_IND) = '1', false) DESC) = 1)"""
-        join = "LEFT JOIN e ON e.fid = b.fid_base"
+        for k in range(panel.SLICES):  # one record per FAMILYID, primary family first
+            con.sql(f"""COPY (
+                SELECT trim(FAMILYID) AS fid, {', '.join(keep)} FROM read_parquet('{merged.as_posix()}')
+                WHERE {in_slice('trim(FAMILYID)', k)}
+                QUALIFY row_number() OVER (PARTITION BY trim(FAMILYID)
+                                           ORDER BY coalesce(trim(PRIMARY_FAMILY_IND) = '1', false) DESC) = 1
+            ) TO '{(panel.WORK / f"exposure_{k}.parquet").as_posix()}' (FORMAT parquet)""")
+        exposure = f"read_parquet('{(panel.WORK / 'exposure_*.parquet').as_posix()}')"
     else:
         notes.append(f"no flood exposure: {merged.name} not found (run step 04)" if BASE_YEAR in years
                      else f"{BASE_YEAR} is not among the panel years: no base-year address or exposure")
-    con.sql(f"""COPY (
-        WITH y AS (SELECT hhid, min(year) AS first_year, max(year) AS last_year, count(*) AS n_years,
-                          count(*) FILTER (WHERE in_study) AS n_years_study, bool_or(linked) AS linked
-                   FROM {finals} GROUP BY hhid),
-             b AS {base}{exposure}
-        SELECT y.*, b.* EXCLUDE (hhid){', e.* EXCLUDE (fid)' if join else ''}
-        FROM y LEFT JOIN b USING (hhid) {join}
-    ) TO '{(panel.DIR / 'households.parquet').as_posix()}' (FORMAT parquet, COMPRESSION zstd)""")
+    parts = []
+    for k in range(panel.SLICES):
+        base = (f"""(SELECT hhid, fid AS fid_base, true AS present_base, in_study AS in_study_base,
+                            state AS state_base, county AS county_base, tract AS tract_base,
+                            tenure AS tenure_base
+                     FROM read_parquet('{final_file(BASE_YEAR).as_posix()}') WHERE {in_slice('hhid', k)})"""
+                if BASE_YEAR in years else "(SELECT NULL::VARCHAR AS hhid WHERE false)")
+        part = (panel.WORK / f"households_{k}.parquet").as_posix()
+        con.sql(f"""COPY (
+            WITH y AS (SELECT hhid, min(year) AS first_year, max(year) AS last_year, count(*) AS n_years,
+                              count(*) FILTER (WHERE in_study) AS n_years_study, bool_or(linked) AS linked
+                       FROM {finals} WHERE {in_slice('hhid', k)} GROUP BY hhid),
+                 b AS {base}
+            SELECT y.*, b.* EXCLUDE (hhid){', e.* EXCLUDE (fid)' if exposure else ''}
+            FROM y LEFT JOIN b USING (hhid) {f'LEFT JOIN {exposure} e ON e.fid = b.fid_base' if exposure else ''}
+        ) TO '{part}' (FORMAT parquet)""")
+        parts.append(part)
+    con.sql("COPY (SELECT * FROM read_parquet([" + ", ".join(f"'{x}'" for x in parts) + "])) "
+            f"TO '{(panel.DIR / 'households.parquet').as_posix()}' (FORMAT parquet, COMPRESSION zstd)")
+    for x in [*parts, *panel.WORK.glob("exposure_*.parquet")]:
+        Path(x).unlink()
     return notes
 
 
@@ -369,6 +421,7 @@ def main() -> None:
     absent = [y for y in years if not panel.national_file(y).exists()]
     if absent:
         sys.exit(f"no step 07 file for {', '.join(map(str, absent))}; run step 07 first")
+    shutil.rmtree(panel.WORK, ignore_errors=True)  # leftovers of a stopped run
     for d in (panel.WORK, TABLES, FIGURES):
         d.mkdir(parents=True, exist_ok=True)
     for old in panel.DIR.glob("panel_*.parquet"):  # years no longer in the analysis
