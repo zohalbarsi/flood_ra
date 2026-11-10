@@ -158,6 +158,11 @@ When a pull changes `requirements.txt`, run `pip install -r requirements.txt` fi
   information is below the state level. The file for year t is read as
   moves from year t-1 to t; check this against the MIGRATE documentation.
 
+- **MIGRATE maps** (`scripts/inspect/migrate_maps.py`, run after
+  `migrate_explore.py`): tract maps of NC and SC (share who move each year;
+  moves in from and out to other counties or states per 100 residents,
+  2011-2019 pooled) and US maps of where people moving to and from NC and SC
+  come from and go to (`migrate_map_tracts.png`, `migrate_map_states.png`).
 - **ID check** (`scripts/inspect/id_churn_check.py`, not a pipeline step):
   do households whose FAMILYID disappears turn up the next year under new
   IDs? Looks up their adults in the next year's NC/SC file by first name,
