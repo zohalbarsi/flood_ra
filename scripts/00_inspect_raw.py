@@ -1,8 +1,3 @@
-"""Step 0: inventory the raw data on the server WITHOUT copying any of it.
-Writes output/logs/data_inventory.md: every file in the infoUSA and
-flood_exposure folders with its size, plus the delimiter, header and column
-names/types of each tabular file, and the files inside each .zip.
-"""
 from __future__ import annotations
 
 import sys
