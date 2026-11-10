@@ -1,33 +1,3 @@
-"""Step 4: merge infoUSA family records with flood exposure, one file per year.
-
-Each row is one family record (FAMILYID): primary families and subfamilies
-alike; PRIMARY_FAMILY_IND = 1 keeps one row per household (LOCATIONID).
-
-Geography of each record (geo_family in settings.yaml picks the code columns):
-
-- county_fips: the county code itself (not taken from the tract, so a record
-  with an unknown tract keeps its county). If it is unknown: the Census 2000
-  county code (files up to 2017 only), else the county of the block the
-  coordinates fall in, if that block is in the record's state. county_source
-  says which.
-- tract_geoid: from the code. Only when it is unknown, the geocode is rooftop
-  level (P) and the coordinates' block does not contradict the county code
-  (or, without one, the state code), it comes from that block. bg_geoid: from
-  the code; only when it is unknown, level P and the block lies in the
-  record's tract, from the block. tract_source / bg_source.
-- block_geoid: the block the coordinates fall in (step 03), always kept.
-  Block flood measures are joined only when that block lies in the record's
-  county; block_exposure_ok also requires a level-P geocode.
-- county_fips_xy / tract_geoid_xy / bg_geoid_xy: the same geography from the
-  coordinates alone, for checks.
-- in_flood_counties: the county is covered by the flood data (NULL only when
-  neither the county nor the coordinates are known). in_flood_counties_code
-  and in_flood_counties_xy give the codes-only and coordinates-only answers.
-
-Outside the flood counties the flood measures are missing, not zero. Writes
-derived/merged/infousa_flood_<year>.parquet and output/logs/merge_report.md
-(counts and shares only).
-"""
 from __future__ import annotations
 
 import sys
