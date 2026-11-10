@@ -168,6 +168,14 @@ When a pull changes `requirements.txt`, run `pip install -r requirements.txt` fi
   IDs? Looks up their adults in the next year's NC/SC file by first name,
   last name and birth year (unique matches only), with a baseline from
   households that kept their FAMILYID (`id_churn_check.md`).
+- **2017 cohort** (`scripts/inspect/cohort_panel.py [base year]`, run after
+  step 08): the households that are a primary family in NC or SC in 2017,
+  followed to 2024 as a fixed group. Household file (server only):
+  `derived/panel/cohort_2017.parquet`, one row per household and year with
+  where it is (NC/SC, other state, missing, gone for good), its tenure,
+  income, children, head's age and race that year, and the same in 2017.
+  Counts and shares: `cohort_2017.md`, `output/tables/cohort_2017_*.csv`,
+  `output/figures/cohort_2017.png`.
 
 Logs are written to `output/logs/`. Step 01 is the slow one (19 years plus 2
 alternate versions, about 275 GB compressed): expect several hours. Run it in
