@@ -4,7 +4,7 @@ Households = primary families (PRIMARY_FAMILY_IND = 1), study states. Census = A
 
 ## Owners and renters (primary families)
 
-owner share duke (plotted): OWNER_RENTER_STATUS 7-9 among households coded 0-9, so the unknowns (4-6) count as renters, as in the Duke DPRC report's Table 6; it moves with Data Axle's recoding of unknowns (2015, 2019, 2025). owner share: 7-9 among households with 0-3 or 7-9; reported: 9 among 9 and 0; status unknown: share coded 4-6 or missing.
+owner share duke (plotted): OWNER_RENTER_STATUS 7-9 among households coded 0-9, so the unknowns (4-6) count as renters, as in the Duke DPRC report's Table 6; it moves with Data Axle's recoding of unknowns (2015, 2019). owner share: 7-9 among households with 0-3 or 7-9; reported: 9 among 9 and 0; status unknown: share coded 4-6 or missing.
 
 ```
  year state households owner share duke owner share owner share reported status unknown ACS owner share ACS households
@@ -26,7 +26,6 @@ owner share duke (plotted): OWNER_RENTER_STATUS 7-9 among households coded 0-9, 
  2022    NC  4,294,086            73.9%       83.2%                91.4%          11.2%           66.7%      4,299,266
  2023    NC  4,035,079            76.3%       85.3%                93.1%          10.6%           66.3%      4,392,669
  2024    NC  4,312,416            76.4%       85.1%                92.8%          10.3%           66.8%      4,496,359
- 2025    NC  4,751,488            64.4%       82.7%                92.3%          22.1%           67.0%      4,539,531
  2007    SC  1,736,485            66.2%       89.4%                99.6%          25.9%           70.0%      1,702,564
  2008    SC  1,687,212            67.9%       90.0%                99.7%          24.6%           70.6%      1,702,300
  2009    SC  1,648,722            68.5%       88.8%                99.8%          22.8%           70.1%      1,730,232
@@ -45,7 +44,6 @@ owner share duke (plotted): OWNER_RENTER_STATUS 7-9 among households coded 0-9, 
  2022    SC  2,022,720            77.3%       86.6%                92.3%          10.7%           72.0%      2,136,080
  2023    SC  1,943,310            79.8%       88.5%                93.6%           9.8%           72.4%      2,177,733
  2024    SC  2,096,749            80.7%       88.8%                93.4%           9.1%           72.3%      2,222,890
- 2025    SC  2,215,109            71.6%       88.8%                93.1%          19.4%           71.8%      2,296,350
 ```
 
 ## Children
@@ -70,7 +68,6 @@ owner share duke (plotted): OWNER_RENTER_STATUS 7-9 among households coded 0-9, 
  2022    NC          30.7%              29.0%            0.53                0.53
  2023    NC          29.3%              28.4%            0.54                0.53
  2024    NC          25.8%              28.6%            0.48                0.52
- 2025    NC          22.9%              28.0%            0.41                0.52
  2007    SC          10.3%              33.0%            0.14                0.62
  2008    SC          10.6%              32.8%            0.15                0.63
  2009    SC          11.6%              32.3%            0.16                0.62
@@ -89,7 +86,6 @@ owner share duke (plotted): OWNER_RENTER_STATUS 7-9 among households coded 0-9, 
  2022    SC          28.9%              28.0%            0.50                0.52
  2023    SC          27.0%              28.4%            0.49                0.52
  2024    SC          23.6%              27.8%            0.43                0.52
- 2025    SC          21.8%              27.7%            0.38                0.50
 ```
 
 ## Income and home value (nominal dollars)
@@ -116,7 +112,6 @@ infoUSA income is top-coded at $500,000 (share top-coded shown). Wealth (WEALTH_
  2022    NC        53,000            67,481     0.4%           187,000               280,600
  2023    NC        56,000            70,804     0.5%           195,000               308,600
  2024    NC        59,000            73,958     0.6%           220,000               333,000
- 2025    NC        53,000            77,638     0.0%           245,000               342,800
  2007    SC        43,000            43,329     0.3%           123,000               133,900
  2008    SC        45,000            44,625     0.5%           128,000               138,700
  2009    SC        50,000            42,442     0.4%           146,000               137,500
@@ -135,7 +130,6 @@ infoUSA income is top-coded at $500,000 (share top-coded shown). Wealth (WEALTH_
  2022    SC        52,000            64,115     0.1%           173,000               254,600
  2023    SC        57,000            67,804     0.2%           189,000               272,900
  2024    SC        59,000            72,350     0.2%           191,000               299,500
- 2025    SC        52,000            73,672     0.0%           210,000               306,200
 ```
 
 ## Race and ethnicity of the first person / householder
@@ -162,7 +156,6 @@ Ethnicity_Code_1 of the first person, grouped with the code table `config/ethnic
  2022    NC              3.8%                 0.0%       81.7%           65.2%        9.5%           20.8%           5.6%               7.1%        2.3%            2.6%
  2023    NC              3.9%                 0.0%       81.7%           64.6%        9.4%           20.6%           5.7%               7.8%        2.3%            2.9%
  2024    NC              3.8%                 0.0%       81.3%           63.8%        9.5%           20.4%           5.9%               8.4%        2.4%            3.1%
- 2025    NC              3.9%                 0.0%       80.3%           62.5%        9.9%           20.2%           6.4%               9.1%        2.5%            3.3%
  2007    SC             39.3%                 0.0%       85.7%           68.6%       11.3%           26.8%           1.8%               2.6%        0.8%            1.1%
  2008    SC             35.2%                 0.0%       85.8%           69.1%       11.0%           26.4%           1.9%               2.6%        0.8%            0.9%
  2009    SC             30.2%                 0.0%       85.7%           68.6%       11.1%           26.6%           1.9%               2.8%        0.8%            1.1%
@@ -181,7 +174,6 @@ Ethnicity_Code_1 of the first person, grouped with the code table `config/ethnic
  2022    SC              3.7%                 0.0%       82.9%           66.1%       11.6%           24.4%           3.6%               4.7%        1.3%            1.5%
  2023    SC              3.7%                 0.0%       83.0%           65.9%       11.4%           24.2%           3.7%               5.2%        1.3%            1.6%
  2024    SC              3.6%                 0.0%       82.8%           65.2%       11.4%           23.7%           3.8%               5.6%        1.3%            1.7%
- 2025    SC              3.7%                 0.0%       82.2%           64.5%       11.6%           22.9%           4.2%               6.6%        1.4%            1.7%
 ```
 
 ### Categories
@@ -208,7 +200,6 @@ Share of households with a placed code (Unknown and Not placed: share of all hou
  2022    NC    3.8%       0.0% 75.3%         6.4%           9.3%        0.3%     5.6%       1.4%        0.9%    0.2% 0.6%            0.1%  0.0%
  2023    NC    3.9%       0.0% 75.2%         6.5%           9.1%        0.3%     5.7%       1.4%        0.9%    0.2% 0.6%            0.1%  0.0%
  2024    NC    3.8%       0.0% 74.8%         6.5%           9.2%        0.3%     5.9%       1.4%        1.0%    0.2% 0.6%            0.1%  0.0%
- 2025    NC    3.9%       0.0% 73.8%         6.5%           9.5%        0.3%     6.4%       1.4%        1.0%    0.2% 0.6%            0.1%  0.0%
  2007    SC   39.3%       0.0% 80.4%         5.3%          11.2%        0.1%     1.8%       0.6%        0.3%    0.1% 0.2%            0.1%  0.0%
  2008    SC   35.2%       0.0% 80.3%         5.5%          10.9%        0.1%     1.9%       0.6%        0.3%    0.1% 0.2%            0.1%  0.0%
  2009    SC   30.2%       0.0% 80.2%         5.5%          11.0%        0.1%     1.9%       0.6%        0.3%    0.1% 0.2%            0.1%  0.0%
@@ -227,7 +218,6 @@ Share of households with a placed code (Unknown and Not placed: share of all hou
  2022    SC    3.7%       0.0% 76.2%         6.7%          11.5%        0.2%     3.6%       0.9%        0.4%    0.1% 0.3%            0.1%  0.0%
  2023    SC    3.7%       0.0% 76.2%         6.8%          11.3%        0.2%     3.7%       0.8%        0.4%    0.1% 0.3%            0.1%  0.0%
  2024    SC    3.6%       0.0% 75.9%         6.9%          11.2%        0.2%     3.8%       0.9%        0.5%    0.1% 0.3%            0.1%  0.0%
- 2025    SC    3.7%       0.0% 75.2%         6.9%          11.5%        0.2%     4.2%       0.9%        0.5%    0.2% 0.4%            0.1%  0.0%
 ```
 
 ### Ethnicity codes
@@ -238,32 +228,32 @@ Most common Ethnicity_Code_1 values, all years (codes longer than 4 characters s
    code group        category share
      E5     W           White 40.1%
      S3     W           White  9.1%
-(blank)               Unknown  7.1%
+(blank)               Unknown  7.6%
      IE     W           White  5.8%
      DE     W           White  4.8%
      W4     W           White  4.4%
      00     Z         Unknown  3.6%
-     H5     H        Hispanic  3.5%
-     LR     B  Black American  2.8%
+     H5     H        Hispanic  3.4%
+     LR     B  Black American  3.0%
      B5     B  Black American  2.7%
      FR     W           White  2.2%
      IT     M    Ethnic White  1.9%
      J4     J    Ethnic White  1.7%
-     Q6     B  Black American  1.6%
+     Q6     B  Black American  1.5%
      NL     W           White  1.4%
      Q9     B  Black American  0.8%
      SE     S           White  0.6%
      PL     E    Ethnic White  0.5%
      IN     A     South Asian  0.5%
-     Q7     B  Black American  0.5%
+     Q7     B  Black American  0.4%
      CN     F      East Asian  0.4%
      A7     I            MENA  0.3%
      Q8     B  Black American  0.3%
      DK     S           White  0.3%
      HU     E    Ethnic White  0.2%
      RU     E    Ethnic White  0.2%
-     VN     F      East Asian  0.2%
      AT     W           White  0.2%
+     VN     F      East Asian  0.2%
      NO     S           White  0.2%
      PT     H    Ethnic White  0.2%
      GR     M    Ethnic White  0.2%
@@ -273,7 +263,7 @@ Most common Ethnicity_Code_1 values, all years (codes longer than 4 characters s
      N3     N American Indian  0.1%
      JP     F      East Asian  0.1%
      SK     E    Ethnic White  0.1%
-     UA     E    Ethnic White  0.1%
+     UA     E    Ethnic White  0.0%
      FI     S           White  0.0%
      P4     I            MENA  0.0%
 ```
