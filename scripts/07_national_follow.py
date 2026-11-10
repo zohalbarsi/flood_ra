@@ -1,23 +1,3 @@
-"""Step 7: find the panel households' records outside the study states.
-
-The panel (step 08) follows every household that is a primary family in a
-study state in at least one year up to last_year, in every year it appears
-anywhere in the US. The converted files (step 01) hold only the study states,
-so this step reads each year's national file once, as step 01 does, and keeps
-the records outside the study states that belong to the panel: the same
-FAMILYID, or any adult (IndividualID_1-5) ever listed in a panel household.
-The adult match lets step 08 follow a household whose FAMILYID changes.
-National files are read from panel_first_year (settings.yaml) on.
-
-Writes (record level, stays on the server): derived/panel/ids_family.parquet,
-derived/panel/ids_person.parquet and derived/panel/national/infousa_<year>.parquet
-(the columns in flood_ra.panel.COLUMNS only). Log (counts only):
-output/logs/national_follow.txt.
-
-Slow: each national file is read once (about 15 minutes each, parallel_files
-at a time). A year already done for the same panel is skipped, so a stopped
-run can simply be started again.
-"""
 from __future__ import annotations
 
 import shutil
