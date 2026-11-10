@@ -164,50 +164,34 @@ def flood_groups(bg: pd.DataFrame) -> tuple[pd.DataFrame, list[str]]:
     return pd.DataFrame(rows), notes
 
 
-def plot(summary: pd.DataFrame, groups: pd.DataFrame, path: Path) -> None:
+def plot(summary: pd.DataFrame, path: Path) -> None:
+    """General flows only: in and out of each state, net, and moves within it."""
     import matplotlib
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
     colors = {"NC": "#1f5fa8", "SC": "#c8611c"}
-    gcolors = {"not flooded": "#888888", "flooded, below median": "#7fb2e5",
-               "flooded, median or more": "#1f5fa8", "rest of NC": "#c8611c"}
-    measures = sorted(groups["measure"].unique()) if len(groups) else []
-    ncol = max(3, len(measures))
-    fig, axes = plt.subplots(2, ncol, figsize=(4.6 * ncol, 8.4), squeeze=False)
-    pctf = matplotlib.ticker.PercentFormatter(1.0)
+    fig, axes = plt.subplots(1, 3, figsize=(16, 4.9))
     num = matplotlib.ticker.FuncFormatter(lambda v, _: f"{v:,.0f}")
     for st, d in summary.groupby("state"):
-        axes[0, 0].plot(d["year"], d["in_from_other_states"], "-o", ms=3, color=colors[st], label=f"{st} in")
-        axes[0, 0].plot(d["year"], d["out_to_other_states"], "--o", ms=3, color=colors[st], label=f"{st} out")
-        axes[0, 1].plot(d["year"], d["net_from_other_states"], "-o", ms=3, color=colors[st], label=st)
-        axes[0, 2].plot(d["year"], d["moved_within_state"] / d["population"], "-o", ms=3, color=colors[st],
-                        label=st)
-    axes[0, 0].set_title("People moving in from / out to other states")
-    axes[0, 1].set_title("Net moves from other states")
-    axes[0, 2].set_title("Moved to another block group in the state")
-    axes[0, 0].yaxis.set_major_formatter(num)
-    axes[0, 1].yaxis.set_major_formatter(num)
-    axes[0, 1].axhline(0, color="black", lw=0.6)
-    axes[0, 2].yaxis.set_major_formatter(pctf)
-    for ax in axes[0, 3:]:
-        ax.set_visible(False)
-    for ax, m in zip(axes[1], measures):
-        gm = groups[groups["measure"] == m]
-        for grp in gcolors:
-            d = gm[gm["group"] == grp].sort_values("year")
-            if len(d):
-                ax.plot(d["year"], d["out_of_county_rate"], "-o", ms=3, color=gcolors[grp], label=grp)
-        ax.set_title(f"Left the county, flood measure {m}")
-        ax.yaxis.set_major_formatter(pctf)
-    for ax in axes[1, len(measures):]:
-        ax.set_visible(False)
-    for ax in axes.flat:
-        if ax.get_visible():
-            ax.xaxis.set_major_locator(matplotlib.ticker.MaxNLocator(integer=True))
-            ax.grid(alpha=0.3)
-            ax.legend(fontsize=8, loc="best")
-    fig.suptitle("MIGRATE, NC and SC (file year t = moves from t-1 to t)", fontsize=12)
-    fig.tight_layout(rect=(0, 0, 1, 0.95))
+        d = d.sort_values("year")
+        axes[0].plot(d["year"], d["in_from_other_states"], "-o", ms=3, color=colors[st], label=f"{st} in")
+        axes[0].plot(d["year"], d["out_to_other_states"], "--o", ms=3, color=colors[st], label=f"{st} out")
+        axes[1].plot(d["year"], d["net_from_other_states"], "-o", ms=3, color=colors[st], label=st)
+        axes[2].plot(d["year"], d["moved_within_state"] / d["population"], "-o", ms=3, color=colors[st], label=st)
+    axes[0].set_title("People moving in from / out to other states")
+    axes[1].set_title("Net moves from other states")
+    axes[2].set_title("Moved to another block group in the state")
+    axes[0].yaxis.set_major_formatter(num)
+    axes[1].yaxis.set_major_formatter(num)
+    axes[1].axhline(0, color="black", lw=0.6)
+    axes[2].yaxis.set_major_formatter(matplotlib.ticker.PercentFormatter(1.0))
+    for ax in axes:
+        ax.xaxis.set_major_locator(matplotlib.ticker.MaxNLocator(integer=True))
+        ax.grid(alpha=0.3)
+        ax.legend(fontsize=8, loc="best")
+    fig.suptitle("MIGRATE: people moving into, out of and within NC and SC "
+                 "(file year t = moves from t-1 to t)", fontsize=12)
+    fig.tight_layout(rect=(0, 0, 1, 0.93))
     fig.savefig(path, dpi=130)
     plt.close(fig)
 
@@ -258,7 +242,7 @@ def main() -> None:
     county.to_csv(TABLES / "migrate_county.csv", index=False)
     bg.drop(columns=["county"]).round(3).to_csv(TABLES / "migrate_bg.csv", index=False)
     groups.to_csv(TABLES / "migrate_flood_groups.csv", index=False)
-    plot(summary, groups, FIGURES / "migrate_flows.png")
+    plot(summary, FIGURES / "migrate_flows.png")
 
     # report tables
     millions = lambda v: f"{v / 1e6:,.1f}M"  # noqa: E731
