@@ -8,10 +8,6 @@ owner share duke (plotted): OWNER_RENTER_STATUS 7-9 among households coded 0-9, 
 
 ```
  year state households owner share duke owner share owner share reported status unknown ACS owner share ACS households
- 2007    NC  3,775,263            64.5%       87.1%                99.6%          25.9%           68.3%      3,540,875
- 2008    NC  3,637,047            65.8%       87.8%                99.7%          25.0%           68.2%      3,595,175
- 2009    NC  3,785,298            65.6%       84.9%                99.8%          22.7%           67.2%      3,646,095
- 2010    NC  3,771,336            66.7%       86.1%                99.8%          22.5%           67.2%      3,670,859
  2011    NC  3,729,062            64.8%       87.8%                99.8%          26.2%           66.5%      3,683,364
  2012    NC  3,763,390            65.2%       87.7%                99.9%          25.7%           65.4%      3,731,325
  2013    NC  4,000,670            63.6%       85.9%                99.8%          25.9%           64.3%      3,757,480
@@ -26,10 +22,6 @@ owner share duke (plotted): OWNER_RENTER_STATUS 7-9 among households coded 0-9, 
  2022    NC  4,294,086            73.9%       83.2%                91.4%          11.2%           66.7%      4,299,266
  2023    NC  4,035,079            76.3%       85.3%                93.1%          10.6%           66.3%      4,392,669
  2024    NC  4,312,416            76.4%       85.1%                92.8%          10.3%           66.8%      4,496,359
- 2007    SC  1,736,485            66.2%       89.4%                99.6%          25.9%           70.0%      1,702,564
- 2008    SC  1,687,212            67.9%       90.0%                99.7%          24.6%           70.6%      1,702,300
- 2009    SC  1,648,722            68.5%       88.8%                99.8%          22.8%           70.1%      1,730,232
- 2010    SC  1,663,413            69.5%       89.2%                99.9%          22.1%           68.7%      1,761,393
  2011    SC  1,710,088            66.4%       89.4%                99.9%          25.8%           69.2%      1,768,834
  2012    SC  1,723,167            67.2%       89.8%                99.9%          25.2%           68.1%      1,787,340
  2013    SC  1,824,279            66.4%       89.1%                99.9%          25.4%           68.2%      1,794,989
@@ -50,10 +42,6 @@ owner share duke (plotted): OWNER_RENTER_STATUS 7-9 among households coded 0-9, 
 
 ```
  year state children share ACS children share children per hh ACS children per hh
- 2007    NC          10.0%              33.9%            0.13                0.62
- 2008    NC          10.4%              33.7%            0.14                0.62
- 2009    NC          11.0%              33.0%            0.15                0.62
- 2010    NC          13.5%              32.9%            0.18                0.62
  2011    NC          12.8%              32.3%            0.17                0.62
  2012    NC          19.7%              32.3%            0.26                0.61
  2013    NC          18.2%              31.4%            0.24                0.61
@@ -68,10 +56,6 @@ owner share duke (plotted): OWNER_RENTER_STATUS 7-9 among households coded 0-9, 
  2022    NC          30.7%              29.0%            0.53                0.53
  2023    NC          29.3%              28.4%            0.54                0.53
  2024    NC          25.8%              28.6%            0.48                0.52
- 2007    SC          10.3%              33.0%            0.14                0.62
- 2008    SC          10.6%              32.8%            0.15                0.63
- 2009    SC          11.6%              32.3%            0.16                0.62
- 2010    SC          13.8%              31.9%            0.19                0.61
  2011    SC          12.9%              32.2%            0.17                0.61
  2012    SC          20.3%              31.9%            0.27                0.60
  2013    SC          19.0%              30.9%            0.24                0.60
@@ -94,10 +78,6 @@ infoUSA income is top-coded at $500,000 (share top-coded shown). Wealth (WEALTH_
 
 ```
  year state median income ACS median income topcoded median home value ACS median home value
- 2007    NC        46,000            44,670     0.1%           125,000               145,700
- 2008    NC        48,000            46,549     0.2%           140,000               154,500
- 2009    NC        54,000            43,674     0.7%           158,000               155,500
- 2010    NC        51,000            43,326     0.6%           135,000               154,200
  2011    NC        51,000            43,916     0.6%           136,000               153,700
  2012    NC        53,000            45,150     0.6%           155,000               150,100
  2013    NC        51,000            45,906     0.6%           155,000               154,300
@@ -112,10 +92,6 @@ infoUSA income is top-coded at $500,000 (share top-coded shown). Wealth (WEALTH_
  2022    NC        53,000            67,481     0.4%           187,000               280,600
  2023    NC        56,000            70,804     0.5%           195,000               308,600
  2024    NC        59,000            73,958     0.6%           220,000               333,000
- 2007    SC        43,000            43,329     0.3%           123,000               133,900
- 2008    SC        45,000            44,625     0.5%           128,000               138,700
- 2009    SC        50,000            42,442     0.4%           146,000               137,500
- 2010    SC        47,000            42,018     0.4%           121,000               138,100
  2011    SC        46,000            42,367     0.4%           122,000               136,000
  2012    SC        49,000            43,107     0.4%           139,000               135,500
  2013    SC        49,000            44,163     0.5%           140,000               139,200
@@ -138,10 +114,6 @@ Ethnicity_Code_1 of the first person, grouped with the code table `config/ethnic
 
 ```
  year state ethnicity unknown ethnicity not placed white share ACS white share black share ACS black share hispanic share ACS hispanic share asian share ACS asian share
- 2007    NC             39.1%                 0.0%       86.9%           71.1%        8.3%           20.8%           2.9%               4.8%        1.3%            1.5%
- 2008    NC             34.7%                 0.0%       86.8%           71.1%        8.2%           20.8%           3.0%               4.9%        1.4%            1.4%
- 2009    NC             31.3%                 0.0%       86.4%           70.8%        8.6%           20.9%           3.0%               4.8%        1.4%            1.5%
- 2010    NC             25.8%                 0.0%       86.3%           69.9%        8.6%           21.0%           3.1%               5.4%        1.4%            1.7%
  2011    NC             21.2%                 0.0%       86.3%           69.9%        8.4%           21.1%           3.2%               5.5%        1.5%            1.7%
  2012    NC             13.7%                 0.0%       85.8%           69.6%        8.7%           20.9%           3.4%               5.6%        1.5%            1.9%
  2013    NC              4.2%                 0.0%       84.7%           69.5%        9.2%           20.9%           3.8%               5.7%        1.6%            1.9%
@@ -156,10 +128,6 @@ Ethnicity_Code_1 of the first person, grouped with the code table `config/ethnic
  2022    NC              3.8%                 0.0%       81.7%           65.2%        9.5%           20.8%           5.6%               7.1%        2.3%            2.6%
  2023    NC              3.9%                 0.0%       81.7%           64.6%        9.4%           20.6%           5.7%               7.8%        2.3%            2.9%
  2024    NC              3.8%                 0.0%       81.3%           63.8%        9.5%           20.4%           5.9%               8.4%        2.4%            3.1%
- 2007    SC             39.3%                 0.0%       85.7%           68.6%       11.3%           26.8%           1.8%               2.6%        0.8%            1.1%
- 2008    SC             35.2%                 0.0%       85.8%           69.1%       11.0%           26.4%           1.9%               2.6%        0.8%            0.9%
- 2009    SC             30.2%                 0.0%       85.7%           68.6%       11.1%           26.6%           1.9%               2.8%        0.8%            1.1%
- 2010    SC             24.6%                 0.0%       85.5%           68.6%       11.2%           26.0%           2.0%               3.1%        0.9%            1.1%
  2011    SC             20.4%                 0.0%       85.4%           68.1%       11.3%           26.3%           2.0%               3.4%        0.9%            1.1%
  2012    SC             13.2%                 0.0%       85.2%           68.2%       11.3%           26.0%           2.1%               3.5%        0.9%            1.0%
  2013    SC              4.1%                 0.0%       84.6%           67.8%       11.6%           26.4%           2.3%               3.6%        1.0%            1.1%
@@ -182,10 +150,6 @@ Share of households with a placed code (Unknown and Not placed: share of all hou
 
 ```
  year state Unknown Not placed White Ethnic White Black American Other Black Hispanic East Asian South Asian Pacific MENA American Indian Other
- 2007    NC   39.1%       0.0% 81.4%         5.5%           8.1%        0.2%     2.9%       0.9%        0.4%    0.1% 0.3%            0.1%  0.0%
- 2008    NC   34.7%       0.0% 81.2%         5.6%           8.0%        0.2%     3.0%       0.9%        0.4%    0.1% 0.4%            0.1%  0.0%
- 2009    NC   31.3%       0.0% 80.8%         5.6%           8.4%        0.2%     3.0%       0.9%        0.5%    0.1% 0.4%            0.1%  0.0%
- 2010    NC   25.8%       0.0% 80.6%         5.6%           8.5%        0.2%     3.1%       0.9%        0.5%    0.1% 0.4%            0.1%  0.0%
  2011    NC   21.2%       0.0% 80.6%         5.7%           8.3%        0.2%     3.2%       1.0%        0.5%    0.1% 0.4%            0.1%  0.0%
  2012    NC   13.7%       0.0% 80.1%         5.7%           8.5%        0.2%     3.4%       1.0%        0.5%    0.1% 0.4%            0.1%  0.0%
  2013    NC    4.2%       0.0% 79.0%         5.7%           9.0%        0.2%     3.8%       1.1%        0.5%    0.1% 0.4%            0.1%  0.0%
@@ -200,10 +164,6 @@ Share of households with a placed code (Unknown and Not placed: share of all hou
  2022    NC    3.8%       0.0% 75.3%         6.4%           9.3%        0.3%     5.6%       1.4%        0.9%    0.2% 0.6%            0.1%  0.0%
  2023    NC    3.9%       0.0% 75.2%         6.5%           9.1%        0.3%     5.7%       1.4%        0.9%    0.2% 0.6%            0.1%  0.0%
  2024    NC    3.8%       0.0% 74.8%         6.5%           9.2%        0.3%     5.9%       1.4%        1.0%    0.2% 0.6%            0.1%  0.0%
- 2007    SC   39.3%       0.0% 80.4%         5.3%          11.2%        0.1%     1.8%       0.6%        0.3%    0.1% 0.2%            0.1%  0.0%
- 2008    SC   35.2%       0.0% 80.3%         5.5%          10.9%        0.1%     1.9%       0.6%        0.3%    0.1% 0.2%            0.1%  0.0%
- 2009    SC   30.2%       0.0% 80.2%         5.5%          11.0%        0.1%     1.9%       0.6%        0.3%    0.1% 0.2%            0.1%  0.0%
- 2010    SC   24.6%       0.0% 80.0%         5.6%          11.1%        0.1%     2.0%       0.6%        0.3%    0.1% 0.2%            0.1%  0.0%
  2011    SC   20.4%       0.0% 79.8%         5.6%          11.1%        0.1%     2.0%       0.6%        0.3%    0.1% 0.2%            0.1%  0.0%
  2012    SC   13.2%       0.0% 79.5%         5.7%          11.2%        0.1%     2.1%       0.6%        0.3%    0.1% 0.2%            0.1%  0.0%
  2013    SC    4.1%       0.0% 78.9%         5.7%          11.5%        0.1%     2.3%       0.7%        0.3%    0.1% 0.3%            0.1%  0.0%
@@ -226,45 +186,45 @@ Most common Ethnicity_Code_1 values, all years (codes longer than 4 characters s
 
 ```
    code group        category share
-     E5     W           White 40.1%
-     S3     W           White  9.1%
-(blank)               Unknown  7.6%
-     IE     W           White  5.8%
-     DE     W           White  4.8%
-     W4     W           White  4.4%
-     00     Z         Unknown  3.6%
-     H5     H        Hispanic  3.4%
-     LR     B  Black American  3.0%
-     B5     B  Black American  2.7%
-     FR     W           White  2.2%
-     IT     M    Ethnic White  1.9%
-     J4     J    Ethnic White  1.7%
-     Q6     B  Black American  1.5%
-     NL     W           White  1.4%
-     Q9     B  Black American  0.8%
-     SE     S           White  0.6%
-     PL     E    Ethnic White  0.5%
+     E5     W           White 42.2%
+     S3     W           White  9.6%
+     IE     W           White  6.2%
+     DE     W           White  5.1%
+     W4     W           White  4.6%
+     00     Z         Unknown  3.9%
+     H5     H        Hispanic  3.8%
+     B5     B  Black American  2.9%
+     LR     B  Black American  2.7%
+     FR     W           White  2.4%
+     IT     M    Ethnic White  2.0%
+     Q6     B  Black American  1.8%
+(blank)               Unknown  1.8%
+     J4     J    Ethnic White  1.8%
+     NL     W           White  1.5%
+     Q9     B  Black American  0.9%
+     SE     S           White  0.7%
+     PL     E    Ethnic White  0.6%
+     Q7     B  Black American  0.5%
      IN     A     South Asian  0.5%
-     Q7     B  Black American  0.4%
      CN     F      East Asian  0.4%
+     Q8     B  Black American  0.4%
      A7     I            MENA  0.3%
-     Q8     B  Black American  0.3%
      DK     S           White  0.3%
-     HU     E    Ethnic White  0.2%
-     RU     E    Ethnic White  0.2%
-     AT     W           White  0.2%
      VN     F      East Asian  0.2%
-     NO     S           White  0.2%
+     RU     E    Ethnic White  0.2%
+     HU     E    Ethnic White  0.2%
+     AT     W           White  0.2%
      PT     H    Ethnic White  0.2%
+     NO     S           White  0.2%
      GR     M    Ethnic White  0.2%
      CZ     E    Ethnic White  0.2%
      K5     F      East Asian  0.1%
      PH     P         Pacific  0.1%
-     N3     N American Indian  0.1%
      JP     F      East Asian  0.1%
+     N3     N American Indian  0.1%
      SK     E    Ethnic White  0.1%
-     UA     E    Ethnic White  0.0%
-     FI     S           White  0.0%
+     UA     E    Ethnic White  0.1%
+     FI     S           White  0.1%
      P4     I            MENA  0.0%
 ```
 
