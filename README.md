@@ -176,6 +176,12 @@ When a pull changes `requirements.txt`, run `pip install -r requirements.txt` fi
   income, children, head's age and race that year, and the same in 2017.
   Counts and shares: `cohort_2017.md`, `output/tables/cohort_2017_*.csv`,
   `output/figures/cohort_2017.png`.
+- **Births vs ACS** (`scripts/inspect/fertility_check.py`, run after step
+  08): infoUSA has no births, so it counts the rise in households'
+  children counts from one year to the next (households in the panel both
+  years) and compares it with ACS women who had a birth in the past 12
+  months (B13002), both per 1,000 households, NC and SC by year
+  (`fertility_check.md`, `output/tables/fertility_by_year.csv`).
 
 Logs are written to `output/logs/`. Step 01 is the slow one (19 years plus 2
 alternate versions, about 275 GB compressed): expect several hours. Run it in
