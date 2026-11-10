@@ -15,3 +15,4 @@
 2026-11-10 04:11  2022 (US_Consumer_5_File_2022.csv.gz): 698,626 panel records outside the study states in 49 states (462,376 by FAMILYID, 236,250 by an adult only); rejected rows: none; 13.9 min
 2026-11-10 04:12  2021 (US_Consumer_5_File_2021.csv.gz): 775,862 panel records outside the study states in 49 states (516,354 by FAMILYID, 259,508 by an adult only); rejected rows: none; 15.3 min
 2026-11-10 04:20  2023 (US_Consumer_5_File_2023.csv.gz): 621,375 panel records outside the study states in 49 states (408,226 by FAMILYID, 213,149 by an adult only); rejected rows: none; 11.8 min
+2026-11-10 04:22  2024 (US_Consumer_5_File_2024.csv.gz): 616,871 panel records outside the study states in 49 states (399,762 by FAMILYID, 217,109 by an adult only); rejected rows: none; 12.3 min
