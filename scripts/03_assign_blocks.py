@@ -1,10 +1,3 @@
-"""Step 3: place each family record in a 2010 census block, by its coordinates.
-
-infoUSA has no block code, so this step finds the flood file's block outline
-that contains each household's coordinates (GE_LATITUDE_2010 /
-GE_LONGITUDE_2010). A point exactly on the line between two blocks goes to the lower
-GEOID. 
-"""
 from __future__ import annotations
 
 import sys
