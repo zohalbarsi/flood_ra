@@ -41,6 +41,8 @@ FLOOD_EXPOSURE = Path(CFG["flood_exposure"]).expanduser()
 DERIVED = Path(CFG["derived"]).expanduser()
 # Optional: CoreLogic property data (dwelling characteristics, values)
 CORELOGIC_RAW = Path(CFG["corelogic_raw"]).expanduser() if CFG.get("corelogic_raw") else None
+# Optional: MIGRATE block-group migration flows (scripts/inspect/migrate_explore.py)
+MIGRATE_RAW = Path(CFG["migrate_raw"]).expanduser() if CFG.get("migrate_raw") else None
 
 # Files converted at once, and DuckDB threads / memory per file
 PARALLEL = int(CFG.get("parallel_files", 4))

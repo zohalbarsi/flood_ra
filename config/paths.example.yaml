@@ -4,6 +4,7 @@
 infousa_raw: "/home/z/zebarsi/Desktop/project/InfoUSA/rawdata"
 flood_exposure: "/home/z/zebarsi/Desktop/RA/flood_exposure"
 # corelogic_raw: "/path/to/corelogic"   # CoreLogic property data, when used
+migrate_raw: "/home/z/zebarsi/Desktop/RA/migrate_dataset"   # MIGRATE flows (optional)
 
 # Where the pipeline writes its Parquet and merged files (roughly 20-40 GB).
 derived: "/home/z/zebarsi/Desktop/RA/flood_ra_derived"

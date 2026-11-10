@@ -140,6 +140,20 @@ When a pull changes `requirements.txt`, run `pip install -r requirements.txt` fi
   - Read the panel years together, e.g.
     `duckdb.sql("SELECT * FROM read_parquet('<derived>/panel/panel_*.parquet')")`.
 
+- **MIGRATE** (`scripts/inspect/migrate_explore.py`, not a pipeline step):
+  explores the MIGRATE block-group migration flows for NC and SC, 2011-2019
+  (Agostini, Young, Fitzpatrick, Garg and Pierson, "Inferring fine-grained
+  migration patterns across the United States", NBER Working Paper 34263,
+  2025, arXiv:2503.20989; data from migrate.tech.cornell.edu). Set
+  `migrate_raw` in `config/paths.yaml` or give the folder as an argument.
+  It reports moves in, out and within each state by year, the top states of
+  origin and destination, county and block-group totals, and the share of
+  people leaving their county from Florence-flooded vs other block groups
+  (`migrate_report.md`, `migrate_flows.png`, `output/tables/migrate_*.csv`).
+  MIGRATE fits its state-to-state flows to Census totals, so its new
+  information is below the state level. The file for year t is read as
+  moves from year t-1 to t; check this against the MIGRATE documentation.
+
 Logs are written to `output/logs/`. Step 01 is the slow one (19 years plus 2
 alternate versions, about 275 GB compressed): expect several hours. Run it in
 the background so a closed window doesn't stop it:
