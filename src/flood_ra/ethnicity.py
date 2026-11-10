@@ -113,3 +113,10 @@ def sql_broad(column: str) -> str:
     Not placed)."""
     whens = [f"WHEN '{c}' THEN '{b}'" for c in sorted(load_codes()) if (b := broad(c))]
     return f"(CASE upper(trim({column})) {' '.join(whens)} END)"
+
+
+def sql_category(column: str) -> str:
+    """SQL expression for the category of a text column (Unknown if blank)."""
+    whens = [f"WHEN '{c}' THEN '{category(c)}'" for c in sorted(load_codes())]
+    return (f"(CASE WHEN nullif(trim({column}), '') IS NULL THEN '{UNKNOWN}' "
+            f"ELSE CASE upper(trim({column})) {' '.join(whens)} ELSE '{NOT_PLACED}' END END)")

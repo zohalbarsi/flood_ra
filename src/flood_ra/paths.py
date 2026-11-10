@@ -10,7 +10,7 @@ from __future__ import annotations
 import os
 import re
 import sys
-from collections import defaultdict
+from collections import Counter, defaultdict
 from pathlib import Path
 
 import yaml
@@ -64,6 +64,21 @@ def infousa_parquet(year: int, version: str = "main") -> Path:
     """Converted file for one year; versions other than main get a suffix."""
     suffix = "" if version == "main" else f"_{version}"
     return INFOUSA_PARQUET / f"infousa_{year}{suffix}.parquet"
+
+
+def raw_files() -> list[tuple[int, str, Path]]:
+    """(year, version, path) per yearly file; version is "main" for the top folder."""
+    out = []
+    for f in sorted(INFOUSA_RAW.glob(settings.INFOUSA_GLOB)):
+        year = settings.year_of(f.name)
+        if year is not None:
+            version = "main" if f.parent == INFOUSA_RAW else f.parent.name
+            out.append((year, version, f))
+    dupes = [k for k, n in Counter((y, v) for y, v, _ in out).items() if n > 1]
+    if dupes:
+        sys.exit(f"several raw files for the same year and version: {dupes}; "
+                 "narrow infousa_glob in config/settings.yaml")
+    return out
 
 
 def converted_versions() -> dict[int, dict[str, Path]]:

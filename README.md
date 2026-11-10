@@ -57,6 +57,8 @@ When a pull changes `requirements.txt`, run `pip install -r requirements.txt` fi
 | 04 | `04_merge.py` | `merged/infousa_flood_<year>.parquet` | `merge_report.md` |
 | 05 | `05_describe_sample.py` | none | `sample_report.md` |
 | 06 | `06_demographics.py` | `demographics/` (tract shares) | `demographics.md`, `output/figures/`, `output/tables/` |
+| 07 | `07_national_follow.py` | `panel/national/infousa_<year>.parquet`, `panel/ids_*.parquet` | `national_follow.txt` |
+| 08 | `08_panel.py` | `panel/panel_<year>.parquet`, `panel/households.parquet`, `panel/links.parquet` | `panel_report.md`, `panel_trends.png`, `panel_*.csv` |
 
 - **01** reads each yearly `.csv.gz` in place, keeps family records whose address
   state is a study state (`study_states` in settings.yaml), keeps all
@@ -114,6 +116,29 @@ When a pull changes `requirements.txt`, run `pip install -r requirements.txt` fi
   `src/flood_ra/ethnicity.py`: White, Ethnic White, Black American, Other
   Black, Hispanic, East Asian, South Asian, Pacific, MENA, American Indian,
   Other. Unknown codes (00, ZZ, blank) are left out of the race shares.
+
+- **07** and **08** build a household panel: every FAMILYID that is a
+  primary family in NC or SC in at least one year, followed in every year
+  it appears anywhere in the US.
+  - **07** reads each year's national file once (slow, like step 01) and
+    keeps the panel's records outside NC/SC: the same FAMILYID, or any adult
+    (`IndividualID_1-5`) ever listed in a panel household. It keeps the
+    same variables as in NC/SC, not only the address. Finished years are
+    skipped when it runs again.
+  - **08** makes one row per household (`hhid`) and year: where it lives
+    (state, county, tract), whether it moved since the year before or
+    left/entered NC/SC, tenure, income, wealth and its within-year rank,
+    home value, children, head's age, race/ethnicity, marital status,
+    length of residence and listed adults. When a FAMILYID disappears, its
+    adults are looked up the next year: if they all turn up under one new
+    FAMILYID that holds no one else, it continues the household (same
+    `hhid`); a split, a move into another household or no trace ends the
+    path (`links.parquet` records which). `households.parquet` adds each
+    household's 2017 (pre-Florence) address and its flood exposure from
+    step 04. The report follows the households living in NC/SC in 2017,
+    back to 2007 and forward to 2024, next to the cross-section.
+  - Read the panel years together, e.g.
+    `duckdb.sql("SELECT * FROM read_parquet('<derived>/panel/panel_*.parquet')")`.
 
 Logs are written to `output/logs/`. Step 01 is the slow one (19 years plus 2
 alternate versions, about 275 GB compressed): expect several hours. Run it in

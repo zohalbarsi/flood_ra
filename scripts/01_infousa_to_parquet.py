@@ -8,7 +8,6 @@ import shutil
 import subprocess
 import sys
 import time
-from collections import Counter
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime
 from pathlib import Path
@@ -20,21 +19,6 @@ from flood_ra import db, geo, paths, settings  # noqa: E402
 
 LOG = paths.LOG_DIR / "infousa_conversion.txt"
 REJECTS_LIMIT = 10_000
-
-
-def raw_files() -> list[tuple[int, str, Path]]:
-    """(year, version, path) per yearly file; version is "main" for the top folder."""
-    out = []
-    for f in sorted(paths.INFOUSA_RAW.glob(settings.INFOUSA_GLOB)):
-        year = settings.year_of(f.name)
-        if year is not None:
-            version = "main" if f.parent == paths.INFOUSA_RAW else f.parent.name
-            out.append((year, version, f))
-    dupes = [k for k, n in Counter((y, v) for y, v, _ in out).items() if n > 1]
-    if dupes:
-        sys.exit(f"several raw files for the same year and version: {dupes}; "
-                 "narrow infousa_glob in config/settings.yaml")
-    return out
 
 
 def signature(states: list[str]) -> str:
@@ -110,7 +94,7 @@ def _convert(year: int, f: Path, states: list[str], sig: str, tmp: Path) -> str:
 def main(overwrite: bool = False) -> None:
     paths.require(paths.INFOUSA_RAW, paths.FLOOD_EXPOSURE)
     states = geo.study_states()
-    files = raw_files()
+    files = paths.raw_files()
     if not files:
         sys.exit(f"no files match {settings.INFOUSA_GLOB} in {paths.INFOUSA_RAW}")
     sig = signature(states)

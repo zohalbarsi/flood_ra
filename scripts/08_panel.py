@@ -1,0 +1,484 @@
+"""Step 8: the household panel, and how its households change over time.
+
+Unit: a household, followed in every year it appears anywhere in the US
+(study-state records from step 01, other states from step 07). The panel
+holds every FAMILYID that is a primary family in a study state in at least
+one year up to last_year.
+
+When a household's FAMILYID is not in the next year's files, its adults are
+looked up there. If they all turn up under one FAMILYID that is new that year
+and holds no one else, the new FAMILYID continues the household (same hhid).
+Otherwise the household split (adults in several households), joined another
+household, or was not found, and its path ends there (links.parquet).
+
+One row per household (hhid) and year: where it lives (state, county, tract
+from the 2010 ALS codes; whether it moved since the year before, left or
+entered the study states), tenure (owner 7-9, renter 0-3, unknown), income,
+wealth and its rank within the year (its scale changes between years), home
+value, children, head's age, race/ethnicity (ethnicity.py), marital status,
+length of residence and the number of listed adults. When a household has
+several records in a year: the primary-family record, then the most recent
+(RECENCY_DATE), then the one in a study state.
+
+households.parquet adds each household's first and last year and its
+BASE_YEAR address (before Hurricane Florence, Sept 2018) with the flood
+exposure of that address from step 04, when the merged file exists.
+
+Writes (record level, stays on the server): derived/panel/panel_<year>.parquet,
+derived/panel/households.parquet, derived/panel/links.parquet. Aggregates:
+output/logs/panel_report.md, output/tables/panel_*.csv,
+output/figures/panel_trends.png.
+"""
+from __future__ import annotations
+
+import re
+import shutil
+import sys
+import time
+from pathlib import Path
+
+import pandas as pd
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
+from flood_ra import db, ethnicity, geo, panel, paths  # noqa: E402
+from flood_ra.address import address_key  # noqa: E402
+from flood_ra.report import pct, table  # noqa: E402
+
+BASE_YEAR = 2017      # last year before Florence: defines the cohort and the exposure
+MIN_CELL = 10         # destination states with fewer households are pooled
+GEO = "als2010"       # 2010 Census codes, filled in every state
+REPORT = paths.LOG_DIR / "panel_report.md"
+TABLES = paths.REPO_ROOT / "output" / "tables"
+FIGURES = paths.REPO_ROOT / "output" / "figures"
+FAM = f"(SELECT id FROM read_parquet('{panel.IDS_FAMILY.as_posix()}'))"
+PER = f"(SELECT id FROM read_parquet('{panel.IDS_PERSON.as_posix()}'))"
+
+
+def rows_file(year: int) -> str:
+    return (panel.WORK / f"rows_{year}.parquet").as_posix()
+
+
+def persons_file(year: int) -> str:
+    return (panel.WORK / f"persons_{year}.parquet").as_posix()
+
+
+def final_file(year: int) -> Path:
+    return panel.DIR / f"panel_{year}.parquet"
+
+
+def columns(con, src: str) -> set[str]:
+    return {r[0] for r in con.sql(f"DESCRIBE SELECT * FROM {src}").fetchall()}
+
+
+def standard_sql(src: str, cols: set[str], source: str, states: list[str]) -> str:
+    """One row per record with the panel's fields, from a converted or a national file."""
+    def v(name: str) -> str:  # a column as trimmed text, NULL if the file lacks it
+        return f'trim(CAST("{name}" AS VARCHAR))' if name in cols else "NULL::VARCHAR"
+
+    def num(name: str) -> str:
+        return f"TRY_CAST({v(name)} AS INTEGER)"
+
+    return f"""
+        SELECT year, trim(FAMILYID) AS fid, nullif({v('LOCATIONID')}, '') AS loc,
+               coalesce({v('PRIMARY_FAMILY_IND')} = '1', false) AS prim,
+               upper(trim(STATE)) AS state,
+               coalesce(upper(trim(STATE)) IN ({', '.join(repr(s) for s in states)}), false) AS in_study,
+               {geo.county_fips(GEO)} AS county, {geo.tract_geoid(GEO)} AS tract,
+               left({v('ZIP')}, 5) AS zip5, {address_key(cols, True)} AS addr,
+               {num('OWNER_RENTER_STATUS')} AS owner_code, {num('FIND_DIV_1000')} * 1000 AS income,
+               {num('WEALTH_FINDER_SCORE')} AS wealth, {num('ESTMTD_HOME_VAL_DIV_1000')} * 1000 AS home_value,
+               {num('CHILDREN_IND')} AS kids, {num('CHILDRENHHCOUNT')} AS n_kids,
+               nullif(upper({v('HEAD_HH_AGE_CODE')}), '') AS head_age, {num('MARITAL_STATUS')} AS marital,
+               {num('LENGTH_OF_RESIDENCE')} AS lor, {num('RECENCY_DATE')} AS recency,
+               nullif(upper({v('Ethnicity_Code_1')}), '') AS eth_code,
+               len(list_filter({panel.persons_list(cols)}, x -> x IS NOT NULL)) AS n_adults,
+               {panel.persons_list(cols)} AS persons, '{source}' AS source
+        FROM {src}"""
+
+
+def year_rows(con, year: int, conv: Path, states: list[str]) -> tuple[int, int]:
+    """Work files for one year: one row per FAMILYID (panel households, and other
+    households holding a panel adult, which may continue one) and its adults."""
+    src = f"read_parquet('{conv.as_posix()}')"
+    cols = columns(con, src)
+    con.sql(f"""CREATE OR REPLACE TEMP TABLE extra AS
+        SELECT DISTINCT fid FROM (
+            SELECT trim(FAMILYID) AS fid, unnest({panel.persons_list(cols)}) AS p
+            FROM {src} WHERE trim(FAMILYID) NOT IN {FAM})
+        WHERE p IN {PER}""")
+    parts = [f"SELECT * FROM ({standard_sql(src, cols, 'study states', states)}) "
+             f"WHERE fid IN {FAM} OR fid IN (SELECT fid FROM extra)"]
+    nat = panel.national_file(year)
+    nat_src = f"read_parquet('{nat.as_posix()}')"
+    parts.append(standard_sql(nat_src, columns(con, nat_src), "other states", states))
+    con.sql(f"CREATE OR REPLACE TEMP TABLE recs AS SELECT * FROM ({' UNION ALL BY NAME '.join(parts)}) "
+            "WHERE fid IS NOT NULL")
+    con.sql(f"""COPY (
+        SELECT * EXCLUDE (persons), count(*) OVER w AS n_records,
+               min(state) OVER w IS DISTINCT FROM max(state) OVER w AS multi_state
+        FROM recs WINDOW w AS (PARTITION BY fid)
+        QUALIFY row_number() OVER (PARTITION BY fid ORDER BY prim DESC, recency DESC NULLS LAST,
+                                   in_study DESC, addr NULLS LAST) = 1
+    ) TO '{rows_file(year)}' (FORMAT parquet)""")
+    con.sql(f"""COPY (SELECT DISTINCT fid, p AS person FROM (SELECT fid, unnest(persons) AS p FROM recs)
+                      WHERE p IS NOT NULL)
+                TO '{persons_file(year)}' (FORMAT parquet)""")
+    n = con.sql(f"SELECT count(*), count(*) FILTER (WHERE source = 'other states') "
+                f"FROM read_parquet('{rows_file(year)}')").fetchall()[0]
+    con.sql("DROP TABLE recs")
+    con.sql("DROP TABLE extra")
+    return n
+
+
+def link_years(con, years: list[int]) -> None:
+    """Follow households whose FAMILYID disappears: tables succ (FAMILYIDs that
+    continue a household, with its hhid) and links (what became of each)."""
+    con.sql("CREATE OR REPLACE TEMP TABLE succ (fid VARCHAR, hhid VARCHAR, year INTEGER)")
+    con.sql("CREATE OR REPLACE TEMP TABLE links (year INTEGER, fid VARCHAR, successor VARCHAR, kind VARCHAR)")
+    con.sql("CREATE OR REPLACE TEMP TABLE first_seen AS SELECT fid, min(year) AS first_year FROM "
+            "read_parquet([" + ", ".join(f"'{rows_file(y)}'" for y in years) + "]) GROUP BY fid")
+    for t, t1 in zip(years, years[1:]):
+        con.sql(f"""CREATE OR REPLACE TEMP TABLE gone AS
+            SELECT fid FROM read_parquet('{rows_file(t)}')
+            WHERE fid NOT IN (SELECT fid FROM read_parquet('{rows_file(t1)}'))
+              AND (fid IN {FAM} OR fid IN (SELECT fid FROM succ))""")
+        con.sql(f"""CREATE OR REPLACE TEMP TABLE gp AS
+            SELECT DISTINCT fid, person FROM read_parquet('{persons_file(t)}') WHERE fid IN (SELECT fid FROM gone)""")
+        con.sql(f"""CREATE OR REPLACE TEMP TABLE cand AS
+            SELECT DISTINCT gp.fid, q.fid AS successor
+            FROM gp JOIN read_parquet('{persons_file(t1)}') q ON q.person = gp.person
+            WHERE q.fid != gp.fid""")
+        con.sql(f"""CREATE OR REPLACE TEMP TABLE kinds AS
+            WITH n AS (SELECT fid, count(*) AS k, any_value(successor) AS successor FROM cand GROUP BY fid),
+                 shared AS (SELECT successor FROM cand GROUP BY successor HAVING count(*) > 1),
+                 -- successors that also hold an adult who was not in the household
+                 outsiders AS (SELECT DISTINCT n.fid FROM n
+                               JOIN read_parquet('{persons_file(t1)}') q ON q.fid = n.successor
+                               LEFT JOIN gp ON gp.fid = n.fid AND gp.person = q.person
+                               WHERE n.k = 1 AND gp.person IS NULL)
+            SELECT g.fid, n.successor,
+                   CASE WHEN n.fid IS NULL THEN 'not found'
+                        WHEN n.k > 1 THEN 'split'
+                        WHEN f.first_year = {t1} AND n.successor NOT IN (SELECT successor FROM shared)
+                             AND g.fid NOT IN (SELECT fid FROM outsiders) THEN 'continues'
+                        ELSE 'joined' END AS kind
+            FROM gone g LEFT JOIN n USING (fid) LEFT JOIN first_seen f ON f.fid = n.successor""")
+        con.sql(f"""INSERT INTO succ
+            SELECT k.successor, coalesce(s.hhid, k.fid), {t1}
+            FROM kinds k LEFT JOIN succ s ON s.fid = k.fid WHERE k.kind = 'continues'""")
+        con.sql(f"INSERT INTO links SELECT {t1}, fid, CASE WHEN kind = 'continues' THEN successor END, kind "
+                "FROM kinds")
+        print(f"  {t} -> {t1}: households followed", flush=True)
+    for name in ("gone", "gp", "cand", "kinds"):
+        con.sql(f"DROP TABLE IF EXISTS {name}")
+
+
+def final_years(con, years: list[int]) -> None:
+    """The panel rows: one per household (hhid) and year, with the change since
+    the household's row in the previous file year."""
+    prev = None
+    for t in years:
+        con.sql(f"""CREATE OR REPLACE TEMP TABLE cur AS
+            SELECT coalesce(s.hhid, r.fid) AS hhid, s.hhid IS NOT NULL AS linked, r.*,
+                   CASE WHEN r.owner_code BETWEEN 7 AND 9 THEN 'owner'
+                        WHEN r.owner_code BETWEEN 0 AND 3 THEN 'renter' ELSE 'unknown' END AS tenure
+            FROM read_parquet('{rows_file(t)}') r LEFT JOIN succ s ON s.fid = r.fid
+            WHERE r.fid IN {FAM} OR s.fid IS NOT NULL
+            QUALIFY row_number() OVER (PARTITION BY coalesce(s.hhid, r.fid)
+                                       ORDER BY r.prim DESC, r.recency DESC NULLS LAST, r.in_study DESC, r.fid) = 1""")
+        p = (f"(SELECT hhid, addr, state, in_study, tenure FROM read_parquet('{final_file(prev).as_posix()}'))"
+             if prev is not None else "(SELECT hhid, addr, state, in_study, tenure FROM cur WHERE false)")
+        tmp = final_file(t).with_suffix(".parquet.tmp")
+        con.sql(f"""COPY (
+            SELECT c.*,
+                   CASE WHEN c.wealth IS NOT NULL
+                        THEN percent_rank() OVER (PARTITION BY c.wealth IS NULL ORDER BY c.wealth) END AS wealth_rank,
+                   {ethnicity.sql_category('c.eth_code')} AS eth_category,
+                   {ethnicity.sql_broad('c.eth_code')} AS eth_broad,
+                   p.hhid IS NOT NULL AS seen_before,
+                   CASE WHEN p.hhid IS NOT NULL AND c.addr IS NOT NULL AND p.addr IS NOT NULL
+                        THEN c.addr != p.addr END AS moved,
+                   CASE WHEN p.hhid IS NOT NULL THEN p.in_study AND NOT c.in_study END AS left_study,
+                   CASE WHEN p.hhid IS NOT NULL THEN NOT p.in_study AND c.in_study END AS entered_study,
+                   p.state AS state_before, p.in_study AS in_study_before, p.tenure AS tenure_before
+            FROM cur c LEFT JOIN {p} p USING (hhid)
+        ) TO '{tmp.as_posix()}' (FORMAT parquet, COMPRESSION zstd)""")
+        tmp.replace(final_file(t))
+        prev = t
+    con.sql("DROP TABLE IF EXISTS cur")
+
+
+def household_table(con, years: list[int]) -> list[str]:
+    """households.parquet: one row per household; returns notes for the report."""
+    notes = []
+    finals = "read_parquet([" + ", ".join(f"'{final_file(y).as_posix()}'" for y in years) + "])"
+    base = (f"""(SELECT hhid, fid AS fid_base, true AS present_base, in_study AS in_study_base,
+                        state AS state_base, county AS county_base, tract AS tract_base, tenure AS tenure_base
+                 FROM read_parquet('{final_file(BASE_YEAR).as_posix()}'))""" if BASE_YEAR in years else
+            "(SELECT NULL::VARCHAR AS hhid WHERE false)")
+    merged = paths.MERGED / f"infousa_flood_{BASE_YEAR}.parquet"
+    exposure, join = "", ""
+    if BASE_YEAR in years and merged.exists():
+        mcols = columns(con, f"read_parquet('{merged.as_posix()}')")
+        keep = [c for c in ("in_flood_counties", "block_exposure_ok", "tract_geoid", "bg_geoid", "block_geoid")
+                if c in mcols] + sorted(c for c in mcols if re.match(r"^(tract|bg|block)_pct_flooded_", c))
+        exposure = f""", e AS (
+            SELECT trim(FAMILYID) AS fid, {', '.join(keep)} FROM read_parquet('{merged.as_posix()}')
+            QUALIFY row_number() OVER (PARTITION BY trim(FAMILYID)
+                                       ORDER BY coalesce(trim(PRIMARY_FAMILY_IND) = '1', false) DESC) = 1)"""
+        join = "LEFT JOIN e ON e.fid = b.fid_base"
+    else:
+        notes.append(f"no flood exposure: {merged.name} not found (run step 04)" if BASE_YEAR in years
+                     else f"{BASE_YEAR} is not among the panel years: no base-year address or exposure")
+    con.sql(f"""COPY (
+        WITH y AS (SELECT hhid, min(year) AS first_year, max(year) AS last_year, count(*) AS n_years,
+                          count(*) FILTER (WHERE in_study) AS n_years_study, bool_or(linked) AS linked
+                   FROM {finals} GROUP BY hhid),
+             b AS {base}{exposure}
+        SELECT y.*, b.* EXCLUDE (hhid){', e.* EXCLUDE (fid)' if join else ''}
+        FROM y LEFT JOIN b USING (hhid) {join}
+    ) TO '{(panel.DIR / 'households.parquet').as_posix()}' (FORMAT parquet, COMPRESSION zstd)""")
+    return notes
+
+
+def ratio(a: pd.Series, b: pd.Series) -> pd.Series:
+    return a / b.where(b > 0)
+
+
+def report_tables(con, years: list[int]) -> dict[str, pd.DataFrame]:
+    finals = "read_parquet([" + ", ".join(f"'{final_file(y).as_posix()}'" for y in years) + "])"
+    out = {}
+    out["by_year"] = con.sql(f"""
+        SELECT year, count(*) AS households, count(*) FILTER (WHERE in_study) AS in_study_states,
+               count(*) FILTER (WHERE NOT in_study) AS other_states,
+               count(*) FILTER (WHERE linked) AS under_new_familyid,
+               count(*) FILTER (WHERE seen_before) AS seen_before,
+               count(*) FILTER (WHERE moved) AS moved, count(moved) AS moved_known,
+               count(*) FILTER (WHERE moved AND in_study AND in_study_before) AS moved_within,
+               count(*) FILTER (WHERE in_study_before) AS in_study_before,
+               count(*) FILTER (WHERE left_study) AS left_study,
+               count(*) FILTER (WHERE NOT in_study_before) AS outside_before,
+               count(*) FILTER (WHERE entered_study) AS entered_study
+        FROM {finals} GROUP BY year ORDER BY year""").df()
+    out["links"] = con.sql("""
+        SELECT year, count(*) AS not_found_by_familyid,
+               count(*) FILTER (WHERE kind = 'continues') AS continues_new_familyid,
+               count(*) FILTER (WHERE kind = 'joined') AS joined_other_household,
+               count(*) FILTER (WHERE kind = 'split') AS split,
+               count(*) FILTER (WHERE kind = 'not found') AS adults_not_found
+        FROM links GROUP BY year ORDER BY year""").df()
+    dest = con.sql(f"""
+        SELECT state, count(*) AS households,
+               count(*) FILTER (WHERE year = {BASE_YEAR + 2}) AS households_after_florence
+        FROM {finals} WHERE left_study GROUP BY state""").df()
+    small = dest["households"] < MIN_CELL
+    if small.any():
+        pooled = pd.DataFrame([{"state": f"other ({small.sum()} states with fewer than {MIN_CELL})",
+                                "households": dest.loc[small, "households"].sum(),
+                                "households_after_florence": dest.loc[small, "households_after_florence"].sum()}])
+        dest = pd.concat([dest[~small], pooled], ignore_index=True)
+    dest["share"] = dest["households"] / dest["households"].sum() if len(dest) else []
+    dest = dest.sort_values("households", ascending=False, key=lambda s: s.where(~dest["state"].str.startswith("other"), -1))
+    # small counts in the post-Florence column are shown as <10
+    dest["households_after_florence"] = dest["households_after_florence"].map(
+        lambda n: f"<{MIN_CELL}" if 0 < n < MIN_CELL else f"{n:,}")
+    out["destinations"] = dest
+    measures = """count(*) FILTER (WHERE owner_code BETWEEN 7 AND 9)
+                      / nullif(count(*) FILTER (WHERE owner_code BETWEEN 0 AND 9), 0) AS owner_share,
+                  count(*) FILTER (WHERE kids = 1) / nullif(count(kids), 0) AS children_share,
+                  median(income) AS median_income"""
+    cohort = (con.sql(f"""
+        WITH coh AS (SELECT hhid FROM read_parquet('{final_file(BASE_YEAR).as_posix()}') WHERE in_study)
+        SELECT year, count(*) AS cohort_found, count(*) FILTER (WHERE in_study) AS cohort_in_study_states,
+               {measures.replace('AS ', 'AS cohort_')}
+        FROM {finals} SEMI JOIN coh USING (hhid) GROUP BY year""").df()
+        if BASE_YEAR in years else pd.DataFrame({"year": years}))
+    cross = con.sql(f"""SELECT year, {measures.replace('AS ', 'AS all_')}
+                        FROM {finals} WHERE in_study GROUP BY year""").df()
+    out["cohort"] = cross.merge(cohort, on="year", how="left").sort_values("year")
+    out["tenure_changes"] = con.sql(f"""
+        SELECT year, count(*) AS same_address,
+               count(*) FILTER (WHERE tenure_before = 'owner' AND tenure = 'renter') AS owner_to_renter,
+               count(*) FILTER (WHERE tenure_before = 'owner' AND tenure = 'unknown') AS owner_to_unknown,
+               count(*) FILTER (WHERE tenure_before = 'renter' AND tenure = 'owner') AS renter_to_owner,
+               count(*) FILTER (WHERE tenure_before = 'unknown' AND tenure = 'owner') AS unknown_to_owner,
+               count(*) FILTER (WHERE tenure_before = 'renter' AND tenure = 'unknown') AS renter_to_unknown,
+               count(*) FILTER (WHERE tenure_before = 'unknown' AND tenure = 'renter') AS unknown_to_renter
+        FROM {finals} WHERE seen_before AND moved = false GROUP BY year ORDER BY year""").df()
+    return out
+
+
+def plot(t: dict[str, pd.DataFrame], n_cohort: int, path: Path) -> None:
+    import matplotlib
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+    c, y, tc = t["cohort"], t["by_year"], t["tenure_changes"]
+    fig, axes = plt.subplots(2, 3, figsize=(16, 8.6))
+    pctf = matplotlib.ticker.PercentFormatter(1.0)  # adds decimals when the range is narrow
+    ax = axes[0, 0]
+    if "cohort_found" in c and n_cohort:
+        ax.plot(c["year"], c["cohort_found"] / n_cohort, "-o", ms=3, color="#333333", label="found anywhere")
+        ax.plot(c["year"], c["cohort_in_study_states"] / n_cohort, "-o", ms=3, color="#1f5fa8", label="in NC/SC")
+        ax.plot(c["year"], (c["cohort_found"] - c["cohort_in_study_states"]) / n_cohort, "-o", ms=3,
+                color="#c8611c", label="in other states")
+    ax.set_title(f"Households in NC/SC in {BASE_YEAR}: where they are")
+    for ax, col, title, fmt in ((axes[0, 1], "owner_share", "Owner share (unknown codes count as renters)", pctf),
+                                (axes[0, 2], "children_share", "Households with children", pctf),
+                                (axes[1, 0], "median_income", "Median household income ($)",
+                                 matplotlib.ticker.FuncFormatter(lambda v, _: f"{v:,.0f}"))):
+        if f"cohort_{col}" in c:
+            ax.plot(c["year"], c[f"cohort_{col}"], "-o", ms=3, color="#1f5fa8", label=f"{BASE_YEAR} households, wherever they live")
+        ax.plot(c["year"], c[f"all_{col}"], "--", color="#888888", label="all households in NC/SC that year")
+        ax.set_title(title)
+        ax.yaxis.set_major_formatter(fmt)
+    ax = axes[1, 1]
+    ax.plot(y["year"], ratio(y["moved"], y["moved_known"]), "-o", ms=3, color="#333333", label="moved (new address)")
+    ax.plot(y["year"], ratio(y["left_study"], y["in_study_before"]), "-o", ms=3, color="#c8611c", label="left NC/SC")
+    ax.set_title("Moves since the year before")
+    ax = axes[1, 2]
+    ax.plot(tc["year"], ratio(tc["owner_to_renter"] + tc["owner_to_unknown"], tc["same_address"]), "-o", ms=3,
+            color="#c8611c", label="owner -> renter or unknown")
+    ax.plot(tc["year"], ratio(tc["renter_to_owner"] + tc["unknown_to_owner"], tc["same_address"]), "-o", ms=3,
+            color="#1f5fa8", label="renter or unknown -> owner")
+    ax.set_title("Tenure code changes, same address")
+    for ax in axes.flat:
+        if ax in (axes[1, 1], axes[1, 2], axes[0, 0]):
+            ax.yaxis.set_major_formatter(pctf)
+        ax.yaxis.set_major_locator(matplotlib.ticker.MaxNLocator(steps=[1, 2, 5, 10]))
+        ax.xaxis.set_major_locator(matplotlib.ticker.MaxNLocator(integer=True))
+        ax.axvline(BASE_YEAR + 1.7, color="grey", lw=0.8, ls=":")
+        ax.grid(alpha=0.3)
+        ax.legend(fontsize=8, loc="best")
+    fig.suptitle("Household panel: households ever in NC/SC, followed across the US. "
+                 "Dotted line: Hurricane Florence (Sept 2018)", fontsize=12)
+    fig.tight_layout(rect=(0, 0, 1, 0.95))
+    fig.savefig(path, dpi=130)
+    plt.close(fig)
+
+
+def main() -> None:
+    t0 = time.time()
+    files = paths.chosen_files()
+    if not files:
+        sys.exit(f"no converted files in {paths.INFOUSA_PARQUET}; run step 01 first")
+    states = geo.study_states()
+    years = sorted(files)
+    sig = panel.ids_signature(files, states)
+    if panel.stored(panel.IDS_FAMILY) != sig or panel.stored(panel.IDS_PERSON) != sig:
+        sys.exit("the panel IDs are missing or older than the converted files; run step 07 first")
+    absent = [y for y in years if not panel.national_file(y).exists()]
+    if absent:
+        sys.exit(f"no step 07 file for {', '.join(map(str, absent))}; run step 07 first")
+    for d in (panel.WORK, TABLES, FIGURES):
+        d.mkdir(parents=True, exist_ok=True)
+    for old in panel.DIR.glob("panel_*.parquet"):  # years no longer in the analysis
+        m = re.fullmatch(r"panel_(\d{4})\.parquet", old.name)
+        if m and int(m.group(1)) not in years:
+            old.unlink()
+    con = db.connect(threads=paths.THREADS * paths.PARALLEL)
+    geo.define_macros(con)
+
+    print("1/4 household records by year", flush=True)
+    for y in years:
+        n, n_out = year_rows(con, y, files[y], states)
+        print(f"  {y}: {n:,} households ({n_out:,} outside the study states)", flush=True)
+    print("2/4 households whose FAMILYID disappears", flush=True)
+    link_years(con, years)
+    con.sql(f"COPY links TO '{(panel.DIR / 'links.parquet').as_posix()}' (FORMAT parquet)")
+    print("3/4 panel rows", flush=True)
+    final_years(con, years)
+    notes = household_table(con, years)
+    print("4/4 report", flush=True)
+    t = report_tables(con, years)
+    n_hh, n_linked, n_cohort, n_rows = con.sql(f"""
+        SELECT count(*), count(*) FILTER (WHERE linked), count(*) FILTER (WHERE in_study_base),
+               sum(n_years) FROM read_parquet('{(panel.DIR / 'households.parquet').as_posix()}')""").fetchall()[0]
+    n_cohort = n_cohort or 0
+    shutil.rmtree(panel.WORK, ignore_errors=True)
+
+    for name, df in t.items():
+        df.to_csv(TABLES / f"panel_{name}.csv", index=False)
+    plot(t, n_cohort, FIGURES / "panel_trends.png")
+
+    y, lk, c, tc = t["by_year"], t["links"], t["cohort"], t["tenure_changes"]
+    where = pd.DataFrame({
+        "year": y["year"], "households": y["households"].map("{:,}".format),
+        "in NC/SC": y["in_study_states"].map("{:,}".format),
+        "other states": ratio(y["other_states"], y["households"]).map(pct),
+        "under a new FAMILYID": ratio(y["under_new_familyid"], y["households"]).map(pct)})
+    moves = pd.DataFrame({
+        "year": y["year"], "seen the year before": y["seen_before"].map("{:,}".format),
+        "moved": ratio(y["moved"], y["moved_known"]).map(pct),
+        "moved within NC/SC": ratio(y["moved_within"], y["in_study_before"]).map(pct),
+        "left NC/SC": ratio(y["left_study"], y["in_study_before"]).map(pct),
+        "came to NC/SC": ratio(y["entered_study"], y["outside_before"]).map(pct)}).iloc[1:]
+    gone = lk.copy()
+    for col in ("continues_new_familyid", "joined_other_household", "split", "adults_not_found"):
+        gone[col] = ratio(lk[col], lk["not_found_by_familyid"]).map(pct)
+    gone["not_found_by_familyid"] = lk["not_found_by_familyid"].map("{:,}".format)
+    gone.columns = [col.replace("_", " ") for col in gone.columns]
+    dest = t["destinations"].assign(households=lambda d: d["households"].map("{:,}".format),
+                                    share=lambda d: d["share"].map(pct))
+    dest = dest.rename(columns={"households_after_florence": f"of which {BASE_YEAR + 1}->{BASE_YEAR + 2}"})
+    coh = pd.DataFrame({"year": c["year"]})
+    if "cohort_found" in c and n_cohort:
+        coh["found"] = (c["cohort_found"] / n_cohort).map(pct)
+        coh["in NC/SC"] = (c["cohort_in_study_states"] / n_cohort).map(pct)
+    for col, label, f in (("owner_share", "owner share", pct), ("children_share", "children", pct),
+                          ("median_income", "median income", lambda v: "" if pd.isna(v) else f"{v:,.0f}")):
+        if f"cohort_{col}" in c:
+            coh[f"{label}: {BASE_YEAR} households"] = c[f"cohort_{col}"].map(f)
+        coh[f"{label}: all in NC/SC"] = c[f"all_{col}"].map(f)
+    ten = pd.DataFrame({"year": tc["year"], "same address": tc["same_address"].map("{:,}".format)})
+    for col in tc.columns[2:]:
+        ten[col.replace("_", " ")] = ratio(tc[col], tc["same_address"]).map(pct)
+
+    REPORT.write_text("\n".join([
+        "# Household panel (counts and shares only)", "",
+        f"Households: every FAMILYID that is a primary family in {'/'.join(states)} in at least one year "
+        f"{years[0]}-{years[-1]}, followed in every year it appears anywhere in the US (other states: "
+        "step 07). When a FAMILYID disappears, its adults are looked up the next year: if they all turn "
+        "up under one new FAMILYID that holds no one else, it continues the household. One row per "
+        "household and year; with several records in a year, the primary-family record, then the most "
+        "recent. Geography from the 2010 ALS codes. Figure: `output/figures/panel_trends.png`; tables: "
+        "`output/tables/panel_*.csv`.", "",
+        *([("Notes: " + "; ".join(notes)), ""] if notes else []),
+        f"- households: {n_hh:,} ({n_linked:,} continue under a new FAMILYID at some point)",
+        f"- household-years: {n_rows:,}",
+        f"- households in {'/'.join(states)} in {BASE_YEAR} (the cohort below): {n_cohort:,}", "",
+        "## Where the households are, by year", "",
+        "other states: share of the year's households living outside the study states; under a new "
+        "FAMILYID: share followed through a FAMILYID change.", "",
+        *table(where),
+        "## Households whose FAMILYID disappears", "",
+        "Households in the previous year's files whose FAMILYID is not in this year's, and what their "
+        "adults' records show: continues new FAMILYID (all adults under one new FAMILYID with no one "
+        "else; the household is followed), joined another household, split across households, or "
+        "adults not found anywhere.", "",
+        *table(gone),
+        "## Moves since the year before", "",
+        "Households found in both years. moved: new address (street, unit and ZIP, or PO box / route), "
+        "among households with an address in both years; moved within NC/SC and left NC/SC: among "
+        "households in NC/SC the year before; came to NC/SC: among households elsewhere the year "
+        "before.", "",
+        *table(moves),
+        "### Where households leaving NC/SC go", "",
+        f"All years; the last column counts moves between the {BASE_YEAR + 1} and {BASE_YEAR + 2} files "
+        f"(after Florence). States with fewer than {MIN_CELL} households are pooled.", "",
+        *table(dest),
+        f"## Households in NC/SC in {BASE_YEAR}, followed {years[0]}-{years[-1]}", "",
+        f"found and in NC/SC: shares of the {n_cohort:,} households. The {BASE_YEAR} households are "
+        "measured wherever they live that year; 'all in NC/SC' is every panel household living in "
+        "NC/SC that year (the cross-section). Owner share: codes 7-9 among 0-9 (unknown codes count as "
+        "renters, as in step 06).", "",
+        *table(coh),
+        "## Tenure code changes at the same address", "",
+        "Households at the same address as the year before; share whose OWNER_RENTER_STATUS group "
+        "changed. Jumps in single years point to Data Axle recoding rather than real changes.", "",
+        *table(ten),
+    ]))
+    print(f"wrote {REPORT} ({(time.time() - t0) / 60:.1f} min)")
+
+
+if __name__ == "__main__":
+    main()

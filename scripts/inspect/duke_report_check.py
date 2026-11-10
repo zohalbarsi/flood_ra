@@ -33,6 +33,7 @@ import pandas as pd
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "src"))
 from flood_ra import census, db, ethnicity, paths  # noqa: E402
+from flood_ra.address import address_key  # noqa: E402
 from flood_ra.report import pct, table  # noqa: E402
 
 STATE = "NC"
@@ -71,29 +72,6 @@ REPORT_R2 = (0.524, 0.101)
 # 65+ share of heads in the report's age figure (all 65+ grouped), read off the bars (approximate)
 REPORT_65 = {"2006-2010": {"infoUSA": 0.175, "ACS weighted": 0.205},
              "2012-2016": {"infoUSA": 0.235, "ACS weighted": 0.24}}
-
-
-def norm(col: str, cols: set[str]) -> str:
-    """SQL for one address part, upper-cased with single spaces ('' if absent)."""
-    if col.startswith("left(") or col in cols:
-        return f"coalesce(regexp_replace(upper(trim(CAST({col} AS VARCHAR))), '\\s+', ' ', 'g'), '')"
-    return "''"
-
-
-def address_key(cols: set[str], unit: bool) -> str:
-    """SQL for a version-stable key (md5 hex) of a household's mailing address:
-    the street address (house number, street, ZIP; optionally the unit), or for
-    records without a street name the PO box or rural route and ZIP; NULL when
-    neither is present."""
-    zip5 = "left(trim(CAST(ZIP AS VARCHAR)), 5)"
-    street = ["HOUSE_NUM", "STREET_PRE_DIR", "STREET_NAME", "STREET_SUFFIX", "STREET_POST_DIR", zip5]
-    street += ["UNIT_NUM"] if unit else []
-    box = ["BOX_TYPE", "BOX_NUM", "ROUTE_TYPE", "ROUTE_NUM", zip5]
-    has_box = " OR ".join(f"nullif(trim(CAST({c} AS VARCHAR)), '') IS NOT NULL"
-                          for c in ("BOX_NUM", "ROUTE_NUM") if c in cols) or "false"
-    return (f"CASE WHEN nullif(trim(CAST(STREET_NAME AS VARCHAR)), '') IS NOT NULL "
-            f"THEN md5(concat_ws('|', 'S', {', '.join(norm(c, cols) for c in street)})) "
-            f"WHEN {has_box} THEN md5(concat_ws('|', 'B', {', '.join(norm(c, cols) for c in box)})) END")
 
 
 def build_panel(con, files: dict[int, Path]) -> tuple[str, dict]:
