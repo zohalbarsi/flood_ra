@@ -1,13 +1,3 @@
-"""Step 5: describe the converted family records, year by year.
-
-Writes output/logs/sample_report.md (counts and shares only, safe to commit)
-to help choose sample restrictions: whether the two versions of a year hold
-the same records (and which columns differ), families per address (by
-dwelling type), adults listed in more than one family record, whether
-FAMILYID follows families from one year to the next, the record-status
-flags, geocode precision, how recently records were verified, and the
-formats of key columns.
-"""
 from __future__ import annotations
 
 import sys
