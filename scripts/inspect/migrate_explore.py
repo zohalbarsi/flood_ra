@@ -204,11 +204,9 @@ def plot(summary: pd.DataFrame, groups: pd.DataFrame, path: Path) -> None:
     for ax in axes.flat:
         if ax.get_visible():
             ax.xaxis.set_major_locator(matplotlib.ticker.MaxNLocator(integer=True))
-            ax.axvline(2018.7, color="grey", lw=0.8, ls=":")
             ax.grid(alpha=0.3)
             ax.legend(fontsize=8, loc="best")
-    fig.suptitle("MIGRATE, NC and SC (file year t = moves from t-1 to t). Dotted line: Hurricane Florence",
-                 fontsize=12)
+    fig.suptitle("MIGRATE, NC and SC (file year t = moves from t-1 to t)", fontsize=12)
     fig.tight_layout(rect=(0, 0, 1, 0.95))
     fig.savefig(path, dpi=130)
     plt.close(fig)

@@ -408,11 +408,9 @@ def plot(t: dict[str, pd.DataFrame], n_cohort: int, path: Path) -> None:
             ax.yaxis.set_major_formatter(pctf)
         ax.yaxis.set_major_locator(matplotlib.ticker.MaxNLocator(steps=[1, 2, 5, 10]))
         ax.xaxis.set_major_locator(matplotlib.ticker.MaxNLocator(integer=True))
-        ax.axvline(BASE_YEAR + 1.7, color="grey", lw=0.8, ls=":")
         ax.grid(alpha=0.3)
         ax.legend(fontsize=8, loc="best")
-    fig.suptitle("Household panel: households ever in NC/SC, followed across the US. "
-                 "Dotted line: Hurricane Florence (Sept 2018)", fontsize=12)
+    fig.suptitle("Household panel: households ever in NC/SC, followed across the US", fontsize=12)
     fig.tight_layout(rect=(0, 0, 1, 0.95))
     fig.savefig(path, dpi=130)
     plt.close(fig)

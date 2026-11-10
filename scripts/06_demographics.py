@@ -161,12 +161,10 @@ def plot_trends(state: pd.DataFrame, path: Path) -> None:
         # tick steps of 1, 2 or 5 (not 2.5), so whole-number labels are exact
         ax.yaxis.set_major_locator(matplotlib.ticker.MaxNLocator(steps=[1, 2, 5, 10]))
         ax.yaxis.set_major_formatter(matplotlib.ticker.FuncFormatter(lambda v, _, f=fmt: f.format(v)))
-        ax.axvline(2018.7, color="grey", lw=0.8, ls=":")
         ax.xaxis.set_major_locator(matplotlib.ticker.MaxNLocator(integer=True))
         ax.grid(alpha=0.3)
     axes.flat[0].legend(fontsize=8, loc="best")
-    fig.suptitle("infoUSA households (primary families) vs Census ACS, NC and SC. "
-                 "Dotted line: Hurricane Florence (Sept 2018)", fontsize=12)
+    fig.suptitle("infoUSA households (primary families) vs Census ACS, NC and SC", fontsize=12)
     fig.tight_layout(rect=(0, 0, 1, 0.95))
     fig.savefig(path, dpi=130)
     plt.close(fig)
