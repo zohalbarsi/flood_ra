@@ -1,5 +1,3 @@
-"""Step 1: convert each yearly infoUSA Consumer file to Parquet."""
-
 from __future__ import annotations
 
 import fnmatch
